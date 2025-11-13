@@ -305,7 +305,10 @@ tbody tr:hover {
         <div class="search-box">
             <input id="table-filter" type="search" placeholder="Search invoices, vessels, BL numbers...">
         </div>
-        <?= $this->Html->link('✨ New Final Invoice', ['action' => 'add'], ['class' => 'btn btn-primary']) ?>
+        <div style="display:flex;gap:.5rem">
+            <?= $this->Html->link('📤 Bulk Upload', ['action' => 'bulkUpload'], ['class' => 'btn btn-secondary', 'style' => 'background:#f5f5f5;color:#666;border:2px solid #ddd']) ?>
+            <?= $this->Html->link('✨ New Final Invoice', ['action' => 'add'], ['class' => 'btn btn-primary']) ?>
+        </div>
     </div>
 
     <div class="table-card">

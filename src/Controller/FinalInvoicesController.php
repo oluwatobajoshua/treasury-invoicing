@@ -350,4 +350,142 @@ class FinalInvoicesController extends AppController
 
         return $this->response->withStringBody(json_encode($payload));
     }
+
+    /**
+     * Bulk upload method for importing multiple final invoices from CSV
+     *
+     * @return \Cake\Http\Response|null|void Renders view or redirects on successful upload
+     */
+    public function bulkUpload()
+    {
+        if ($this->request->is('post')) {
+            $file = $this->request->getData('file');
+            
+            if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
+                $this->Flash->error(__('Please upload a valid CSV file.'));
+                return;
+            }
+            
+            $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            
+            if (!in_array($extension, ['csv'])) {
+                $this->Flash->error(__('Please upload a CSV file (.csv)'));
+                return;
+            }
+            
+            // Move uploaded file to temp location
+            $tmpPath = TMP . 'uploads' . DS . uniqid() . '.' . $extension;
+            $file->moveTo($tmpPath);
+            
+            // Parse the file
+            $data = $this->parseUploadedFile($tmpPath);
+            unlink($tmpPath); // Clean up
+            
+            if (empty($data)) {
+                $this->Flash->error(__('No valid data found in the uploaded file.'));
+                return;
+            }
+            
+            // Process and save final invoices
+            $results = $this->processBulkFinalInvoices($data);
+            
+            $this->Flash->success(__('{0} final invoices created successfully. {1} errors.', 
+                $results['success'], 
+                $results['errors']
+            ));
+            
+            return $this->redirect(['action' => 'index']);
+        }
+        
+        $this->set([]);
+    }
+
+    /**
+     * Parse uploaded CSV file
+     *
+     * @param string $filePath Path to uploaded file
+     * @return array Parsed data rows
+     */
+    private function parseUploadedFile(string $filePath): array
+    {
+        $data = [];
+        
+        if (($handle = fopen($filePath, 'r')) !== false) {
+            $headers = fgetcsv($handle); // First row as headers
+            while (($row = fgetcsv($handle)) !== false) {
+                if (count($row) === count($headers)) {
+                    $data[] = array_combine($headers, $row);
+                }
+            }
+            fclose($handle);
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Process bulk final invoices data and create entities
+     *
+     * @param array $data Parsed invoice data
+     * @return array Results with success and error counts
+     */
+    private function processBulkFinalInvoices(array $data): array
+    {
+        $success = 0;
+        $errors = 0;
+        
+        foreach ($data as $row) {
+            try {
+                // Find the Fresh Invoice by invoice number
+                $originalInvoiceNumber = trim($row['Original Invoice Number'] ?? '');
+                $freshInvoice = $this->FinalInvoices->FreshInvoices
+                    ->find()
+                    ->where(['invoice_number' => $originalInvoiceNumber])
+                    ->first();
+                
+                if (!$freshInvoice) {
+                    $errors++;
+                    continue; // Skip if Fresh Invoice not found
+                }
+                
+                // Parse vessel name from the format "Vessel: NAME - CODE"
+                $vesselDisplay = trim($row['Vessel Name'] ?? '');
+                $vesselName = $vesselDisplay;
+                if (strpos($vesselDisplay, 'Vessel:') !== false) {
+                    $vesselName = trim(str_replace('Vessel:', '', $vesselDisplay));
+                }
+                
+                $landedQuantity = (float)str_replace([',', ' '], '', $row['Landed Quantity'] ?? 0);
+                $originalQuantity = $freshInvoice->quantity;
+                $variance = $landedQuantity - $originalQuantity;
+                
+                $invoiceData = [
+                    'fresh_invoice_id' => $freshInvoice->id,
+                    'original_invoice_number' => $originalInvoiceNumber,
+                    'vessel_name' => $vesselName,
+                    'bl_number' => trim($row['BL Number'] ?? $freshInvoice->bl_number),
+                    'landed_quantity' => $landedQuantity,
+                    'quantity_variance' => $variance,
+                    'unit_price' => $freshInvoice->unit_price,
+                    'payment_percentage' => $freshInvoice->payment_percentage,
+                    'sgc_account_id' => $freshInvoice->sgc_account_id,
+                    'notes' => trim($row['Notes'] ?? ''),
+                    'status' => 'draft',
+                    'invoice_date' => date('Y-m-d')
+                ];
+                
+                $finalInvoice = $this->FinalInvoices->newEntity($invoiceData);
+                
+                if ($this->FinalInvoices->save($finalInvoice)) {
+                    $success++;
+                } else {
+                    $errors++;
+                }
+            } catch (\Exception $e) {
+                $errors++;
+            }
+        }
+        
+        return ['success' => $success, 'errors' => $errors];
+    }
 }

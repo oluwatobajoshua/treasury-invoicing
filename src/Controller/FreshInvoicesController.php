@@ -328,4 +328,211 @@ class FreshInvoicesController extends AppController
             'quantity' => $contract->quantity
         ]));
     }
+
+    /**
+     * Bulk upload method for importing multiple fresh invoices from CSV/Excel
+     *
+     * @return \Cake\Http\Response|null|void Renders view or redirects on successful upload
+     */
+    public function bulkUpload()
+    {
+        if ($this->request->is('post')) {
+            $file = $this->request->getData('file');
+            
+            if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
+                $this->Flash->error(__('Please upload a valid CSV or Excel file.'));
+                return;
+            }
+            
+            $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            
+            if (!in_array($extension, ['csv', 'xlsx', 'xls'])) {
+                $this->Flash->error(__('Please upload a CSV or Excel file (.csv, .xlsx, .xls)'));
+                return;
+            }
+            
+            // Move uploaded file to temp location
+            $tmpPath = TMP . 'uploads' . DS . uniqid() . '.' . $extension;
+            $file->moveTo($tmpPath);
+            
+            // Parse the file
+            $data = $this->parseUploadedFile($tmpPath, $extension);
+            unlink($tmpPath); // Clean up
+            
+            if (empty($data)) {
+                $this->Flash->error(__('No valid data found in the uploaded file.'));
+                return;
+            }
+            
+            // Process and save invoices
+            $results = $this->processBulkInvoices($data);
+            
+            $this->Flash->success(__('{0} invoices created successfully. {1} errors.', 
+                $results['success'], 
+                $results['errors']
+            ));
+            
+            return $this->redirect(['action' => 'index']);
+        }
+        
+        // Load reference data for the form
+        $clients = $this->FreshInvoices->Clients->find('list', ['limit' => 200])->all();
+        $products = $this->FreshInvoices->Products->find('list', ['limit' => 200])->all();
+        $vessels = $this->FreshInvoices->Vessels->find('list', ['limit' => 200])->all();
+        $contracts = $this->FreshInvoices->Contracts->find('list', ['limit' => 200])->all();
+        $sgcAccounts = $this->FreshInvoices->SgcAccounts->find('list', [
+            'keyField' => 'id',
+            'valueField' => function ($entity) {
+                return $entity->account_id . ' - ' . $entity->account_name;
+            },
+            'limit' => 200
+        ])->all();
+        
+        $this->set(compact('clients', 'products', 'vessels', 'contracts', 'sgcAccounts'));
+    }
+
+    /**
+     * Parse uploaded CSV or Excel file
+     *
+     * @param string $filePath Path to uploaded file
+     * @param string $extension File extension
+     * @return array Parsed data rows
+     */
+    private function parseUploadedFile(string $filePath, string $extension): array
+    {
+        $data = [];
+        
+        if ($extension === 'csv') {
+            // Parse CSV
+            if (($handle = fopen($filePath, 'r')) !== false) {
+                $headers = fgetcsv($handle); // First row as headers
+                while (($row = fgetcsv($handle)) !== false) {
+                    if (count($row) === count($headers)) {
+                        $data[] = array_combine($headers, $row);
+                    }
+                }
+                fclose($handle);
+            }
+        } else {
+            // Parse Excel using PhpSpreadsheet (if installed)
+            // For now, we'll prompt user to convert to CSV
+            $this->Flash->warning(__('Please convert Excel files to CSV format for now.'));
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Process bulk invoices data and create entities
+     *
+     * @param array $data Parsed invoice data
+     * @return array Results with success and error counts
+     */
+    private function processBulkInvoices(array $data): array
+    {
+        $success = 0;
+        $errors = 0;
+        
+        foreach ($data as $row) {
+            try {
+                // Find or create related entities by name
+                $client = $this->findOrCreateClient($row['Client Name'] ?? '');
+                $product = $this->findOrCreateProduct($row['Product Name'] ?? '');
+                $vessel = $this->findOrCreateVessel($row['Vessel Name'] ?? '');
+                
+                // Find SGC Account by account_id
+                $sgcAccount = $this->FreshInvoices->SgcAccounts
+                    ->find()
+                    ->where(['account_id' => trim($row['SGC Account ID'] ?? '')])
+                    ->first();
+                
+                $invoiceData = [
+                    'invoice_number' => trim($row['INVOICE NUMBER'] ?? ''),
+                    'client_id' => $client ? $client->id : null,
+                    'product_id' => $product ? $product->id : null,
+                    'vessel_id' => $vessel ? $vessel->id : null,
+                    'vessel_name' => trim($row['Vessel Name'] ?? ''),
+                    'contract_reference' => trim($row['Contract ID'] ?? ''),
+                    'bl_number' => trim($row['BL Number'] ?? ''),
+                    'quantity' => (float)str_replace([',', ' '], '', $row['Quantity(MT)'] ?? 0),
+                    'unit_price' => (float)str_replace([',', ' '], '', $row['Unit Price'] ?? 0),
+                    'payment_percentage' => (float)str_replace(['%', ' '], '', $row['Payment %'] ?? 100),
+                    'sgc_account_id' => $sgcAccount ? $sgcAccount->id : null,
+                    'bulk_or_bag' => trim($row['BULK/BAG'] ?? ''),
+                    'notes' => trim($row['Notes'] ?? ''),
+                    'status' => 'draft',
+                    'invoice_date' => date('Y-m-d')
+                ];
+                
+                $invoice = $this->FreshInvoices->newEntity($invoiceData);
+                
+                if ($this->FreshInvoices->save($invoice)) {
+                    $success++;
+                } else {
+                    $errors++;
+                }
+            } catch (\Exception $e) {
+                $errors++;
+            }
+        }
+        
+        return ['success' => $success, 'errors' => $errors];
+    }
+
+    /**
+     * Find or create client by name
+     */
+    private function findOrCreateClient(string $name)
+    {
+        if (empty($name)) return null;
+        
+        $client = $this->FreshInvoices->Clients->find()
+            ->where(['name' => trim($name)])
+            ->first();
+        
+        if (!$client) {
+            $client = $this->FreshInvoices->Clients->newEntity(['name' => trim($name)]);
+            $this->FreshInvoices->Clients->save($client);
+        }
+        
+        return $client;
+    }
+
+    /**
+     * Find or create product by name
+     */
+    private function findOrCreateProduct(string $name)
+    {
+        if (empty($name)) return null;
+        
+        $product = $this->FreshInvoices->Products->find()
+            ->where(['name' => trim($name)])
+            ->first();
+        
+        if (!$product) {
+            $product = $this->FreshInvoices->Products->newEntity(['name' => trim($name)]);
+            $this->FreshInvoices->Products->save($product);
+        }
+        
+        return $product;
+    }
+
+    /**
+     * Find or create vessel by name
+     */
+    private function findOrCreateVessel(string $name)
+    {
+        if (empty($name)) return null;
+        
+        $vessel = $this->FreshInvoices->Vessels->find()
+            ->where(['name' => trim($name)])
+            ->first();
+        
+        if (!$vessel) {
+            $vessel = $this->FreshInvoices->Vessels->newEntity(['name' => trim($name)]);
+            $this->FreshInvoices->Vessels->save($vessel);
+        }
+        
+        return $vessel;
+    }
 }

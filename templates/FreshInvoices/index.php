@@ -554,6 +554,7 @@ foreach ($freshInvoices as $invoice) {
             Invoice List
         </h3>
         <div class="table-actions">
+            <?= $this->Html->link('<i class="fas fa-upload"></i> Bulk Upload', ['action' => 'bulkUpload'], ['class' => 'btn btn-sm btn-primary', 'escape' => false, 'style' => 'margin-right:.5rem']) ?>
             <button class="btn btn-sm btn-outline" onclick="window.print()">
                 <i class="fas fa-print"></i> Export
             </button>
