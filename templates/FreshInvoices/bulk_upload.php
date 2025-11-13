@@ -56,7 +56,8 @@ $this->assign('title', 'Bulk Upload Fresh Invoices');
                     <li><strong>Step 2:</strong> Fill in your invoice data following the exact column headers</li>
                     <li><strong>Step 3:</strong> Save as CSV file and upload below</li>
                     <li><strong>Note:</strong> Client, Product, and Vessel will be auto-created if they don't exist</li>
-                    <li><strong>Required columns:</strong> INVOICE NUMBER, Client Name, BL Number, Quantity(MT), Unit Price</li>
+                    <li><strong>Invoice Numbers:</strong> Leave blank for auto-generation, or provide custom numbers</li>
+                    <li><strong>Required columns:</strong> Client Name, BL Number, Quantity(MT), Unit Price</li>
                 </ul>
             </div>
 
@@ -86,7 +87,7 @@ $this->assign('title', 'Bulk Upload Fresh Invoices');
                         </thead>
                         <tbody>
                             <tr>
-                                <td>0155</td>
+                                <td></td>
                                 <td>SFI/CARGILL</td>
                                 <td>Cocoa</td>
                                 <td>2025-SI 1B/QP 136484</td>
@@ -100,7 +101,7 @@ $this->assign('title', 'Bulk Upload Fresh Invoices');
                                 <td>16 BULK</td>
                             </tr>
                             <tr>
-                                <td>0156</td>
+                                <td>CUST-001</td>
                                 <td>SFI/CARGILL</td>
                                 <td>Cocoa</td>
                                 <td>2025-SI 1B/QP 136484</td>
@@ -155,7 +156,8 @@ $this->assign('title', 'Bulk Upload Fresh Invoices');
             <div class="note">
                 <strong>💡 Pro Tips:</strong>
                 <ul style="margin:.5rem 0 0;padding-left:1.5rem">
-                    <li>Ensure all invoice numbers are unique</li>
+                    <li>Leave Invoice Number blank for auto-generation (recommended)</li>
+                    <li>Or provide custom invoice numbers if you have a specific numbering scheme</li>
                     <li>Use the exact SGC Account ID from your system</li>
                     <li>Payment % should be a number (e.g., 98 for 98%)</li>
                     <li>Quantity and Unit Price should be numeric values</li>

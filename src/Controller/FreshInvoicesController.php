@@ -446,8 +446,10 @@ class FreshInvoicesController extends AppController
                     ->where(['account_id' => trim($row['SGC Account ID'] ?? '')])
                     ->first();
                 
+                // Invoice number is optional - will be auto-generated if empty
+                $invoiceNumber = trim($row['INVOICE NUMBER'] ?? '');
+                
                 $invoiceData = [
-                    'invoice_number' => trim($row['INVOICE NUMBER'] ?? ''),
                     'client_id' => $client ? $client->id : null,
                     'product_id' => $product ? $product->id : null,
                     'vessel_id' => $vessel ? $vessel->id : null,
@@ -463,6 +465,11 @@ class FreshInvoicesController extends AppController
                     'status' => 'draft',
                     'invoice_date' => date('Y-m-d')
                 ];
+                
+                // Only set invoice_number if provided, otherwise let Table generate it
+                if (!empty($invoiceNumber)) {
+                    $invoiceData['invoice_number'] = $invoiceNumber;
+                }
                 
                 $invoice = $this->FreshInvoices->newEntity($invoiceData);
                 
