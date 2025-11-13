@@ -50,12 +50,25 @@ return function (RouteBuilder $routes): void {
     $routes->setRouteClass(DashedRoute::class);
 
     $routes->scope('/', function (RouteBuilder $builder): void {
+    /*
+     * Root => Pages::display('home')
+     * Note: pass the fixed argument 'home' directly, not via 'pass' option,
+     * so that PagesController::display receives $path=['home'] and does not
+     * redirect back to '/'.
+     */
+    $builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
+
         /*
-         * Here, we are connecting '/' (base path) to a controller called 'Pages',
-         * its action called 'display', and we pass a param to select the view file
-         * to use (in this case, templates/Pages/home.php)...
+         * Dashboard for authenticated users - Treasury Invoicing
          */
-        $builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
+        $builder->connect('/dashboard', ['controller' => 'FreshInvoices', 'action' => 'index']);
+
+        /*
+         * Auth routes
+         */
+        $builder->connect('/login', ['controller' => 'Auth', 'action' => 'login']);
+        $builder->connect('/logout', ['controller' => 'Auth', 'action' => 'logout']);
+        $builder->connect('/auth/callback', ['controller' => 'Auth', 'action' => 'callback']);
 
         /*
          * ...and connect the rest of 'Pages' controller's URLs.
@@ -75,6 +88,13 @@ return function (RouteBuilder $routes): void {
          * You can remove these routes once you've connected the
          * routes you want in your application.
          */
+        $builder->fallbacks();
+    });
+
+    // Admin prefixed routes
+    $routes->prefix('Admin', function (RouteBuilder $builder): void {
+        $builder->setRouteClass(DashedRoute::class);
+        $builder->connect('/', ['controller' => 'Dashboard', 'action' => 'index']);
         $builder->fallbacks();
     });
 

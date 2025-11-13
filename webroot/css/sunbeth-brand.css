@@ -1,0 +1,381 @@
+/**
+ * Sunbeth Global Concepts - Brand Style Guide
+ * Treasury Invoicing System
+ * 
+ * Primary Brand Color: #ff5722 (Sunbeth Orange)
+ * Secondary Color: #0c5343 (Deep Green)
+ * 
+ * This file ensures consistent brand colors across all pages
+ */
+
+:root {
+    /* Sunbeth Brand Colors */
+    --sunbeth-orange: #ff5722;
+    --sunbeth-orange-light: #ff7043;
+    --sunbeth-orange-dark: #e64a19;
+    --sunbeth-orange-bg: rgba(255, 87, 34, 0.1);
+    --sunbeth-orange-border: rgba(255, 87, 34, 0.2);
+    
+    /* Green accents */
+    --sunbeth-green: #0c5343;
+    --sunbeth-green-light: #0f6b54;
+    --sunbeth-green-dark: #083d2f;
+}
+
+/* Status Badge - Sunbeth Orange for pending/warning states */
+.status-badge.status-pending,
+.status-badge.status-warning,
+.badge.pending,
+.badge.warning {
+    background: var(--sunbeth-orange-bg);
+    color: var(--sunbeth-orange);
+    border: 1px solid var(--sunbeth-orange-border);
+}
+
+/* Buttons with Sunbeth Orange */
+.btn-accent,
+.btn-warning,
+.btn-orange,
+.btn-sunbeth {
+    background: linear-gradient(135deg, var(--sunbeth-orange) 0%, var(--sunbeth-orange-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+    border: none;
+}
+
+.btn-accent:hover,
+.btn-warning:hover,
+.btn-orange:hover,
+.btn-sunbeth:hover {
+    background: linear-gradient(135deg, var(--sunbeth-orange-light) 0%, var(--sunbeth-orange) 100%);
+    box-shadow: 0 6px 20px rgba(255, 87, 34, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Outline buttons */
+.btn-outline-accent,
+.btn-outline-orange {
+    background: transparent;
+    color: var(--sunbeth-orange);
+    border: 2px solid var(--sunbeth-orange);
+}
+
+.btn-outline-accent:hover,
+.btn-outline-orange:hover {
+    background: var(--sunbeth-orange-bg);
+    color: var(--sunbeth-orange-dark);
+}
+
+/* Links with Sunbeth Orange */
+.link-accent,
+.link-orange,
+a.accent {
+    color: var(--sunbeth-orange);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.link-accent:hover,
+.link-orange:hover,
+a.accent:hover {
+    color: var(--sunbeth-orange-dark);
+    text-decoration: underline;
+}
+
+/* Borders and dividers */
+.border-sunbeth,
+.border-orange {
+    border-color: var(--sunbeth-orange) !important;
+}
+
+.border-bottom-sunbeth {
+    border-bottom: 3px solid var(--sunbeth-orange);
+}
+
+.border-top-sunbeth {
+    border-top: 3px solid var(--sunbeth-orange);
+}
+
+/* Backgrounds */
+.bg-sunbeth,
+.bg-orange {
+    background-color: var(--sunbeth-orange) !important;
+    color: white;
+}
+
+.bg-sunbeth-light {
+    background-color: var(--sunbeth-orange-bg) !important;
+    color: var(--sunbeth-orange-dark);
+}
+
+/* Text colors */
+.text-sunbeth,
+.text-orange {
+    color: var(--sunbeth-orange) !important;
+}
+
+.text-sunbeth-dark {
+    color: var(--sunbeth-orange-dark) !important;
+}
+
+/* Form focus states with Sunbeth Orange */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--sunbeth-orange) !important;
+    box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.1) !important;
+    outline: none;
+}
+
+/* Company header with Sunbeth Orange accent */
+.company-header-border {
+    border-bottom: 4px solid var(--sunbeth-orange);
+}
+
+.company-logo-placeholder {
+    background: var(--sunbeth-orange);
+    color: white;
+}
+
+/* Invoice-specific styling */
+.invoice-accent {
+    color: var(--sunbeth-orange);
+    font-weight: 700;
+}
+
+.invoice-total {
+    color: var(--sunbeth-orange);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+/* Tables with Sunbeth Orange highlights */
+.table-sunbeth thead th {
+    background: var(--sunbeth-orange);
+    color: white;
+}
+
+.table-sunbeth tbody tr:hover {
+    background: var(--sunbeth-orange-bg);
+}
+
+/* Cards with Sunbeth Orange accent */
+.card-sunbeth {
+    border-top: 4px solid var(--sunbeth-orange);
+}
+
+.card-header-sunbeth {
+    background: linear-gradient(to right, var(--sunbeth-orange-bg), white);
+    border-bottom: 2px solid var(--sunbeth-orange-border);
+}
+
+/* Alerts and notifications */
+.alert-sunbeth,
+.alert-orange {
+    background: var(--sunbeth-orange-bg);
+    border-left: 4px solid var(--sunbeth-orange);
+    color: var(--sunbeth-orange-dark);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+/* Progress bars */
+.progress-sunbeth .progress-bar {
+    background: var(--sunbeth-orange);
+}
+
+/* Badges */
+.badge-sunbeth,
+.badge-orange {
+    background: var(--sunbeth-orange);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.badge-sunbeth-outline {
+    background: transparent;
+    color: var(--sunbeth-orange);
+    border: 1px solid var(--sunbeth-orange);
+}
+
+/* Icons with Sunbeth Orange */
+.icon-sunbeth,
+.icon-orange {
+    color: var(--sunbeth-orange);
+}
+
+/* Hover effects */
+.hover-sunbeth:hover {
+    color: var(--sunbeth-orange) !important;
+    cursor: pointer;
+}
+
+.hover-bg-sunbeth:hover {
+    background: var(--sunbeth-orange-bg) !important;
+}
+
+/* Gradients */
+.gradient-sunbeth {
+    background: linear-gradient(135deg, var(--sunbeth-orange) 0%, var(--sunbeth-orange-dark) 100%);
+}
+
+.gradient-sunbeth-light {
+    background: linear-gradient(135deg, var(--sunbeth-orange-bg) 0%, rgba(255, 87, 34, 0.05) 100%);
+}
+
+/* Shadows */
+.shadow-sunbeth {
+    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+}
+
+.shadow-sunbeth-hover:hover {
+    box-shadow: 0 6px 20px rgba(255, 87, 34, 0.4);
+}
+
+/* Divider */
+.divider-sunbeth {
+    height: 3px;
+    background: var(--sunbeth-orange);
+    border: none;
+    margin: 1.5rem 0;
+}
+
+/* List items with Sunbeth Orange */
+.list-sunbeth li::before {
+    content: "▪";
+    color: var(--sunbeth-orange);
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+}
+
+/* Spinner/loader */
+.spinner-sunbeth {
+    border: 3px solid var(--sunbeth-orange-bg);
+    border-top: 3px solid var(--sunbeth-orange);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Tabs */
+.tabs-sunbeth .tab.active {
+    border-bottom: 3px solid var(--sunbeth-orange);
+    color: var(--sunbeth-orange);
+}
+
+/* Pagination */
+.pagination .active a {
+    background: var(--sunbeth-orange);
+    color: white;
+    border-color: var(--sunbeth-orange);
+}
+
+/* Tooltips */
+.tooltip-sunbeth {
+    background: var(--sunbeth-orange);
+    color: white;
+}
+
+.tooltip-sunbeth::after {
+    border-top-color: var(--sunbeth-orange);
+}
+
+/* Checkboxes and radio buttons */
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    accent-color: var(--sunbeth-orange);
+}
+
+/* Selection highlight */
+::selection {
+    background: var(--sunbeth-orange-bg);
+    color: var(--sunbeth-orange-dark);
+}
+
+::-moz-selection {
+    background: var(--sunbeth-orange-bg);
+    color: var(--sunbeth-orange-dark);
+}
+
+/* Scrollbar (Webkit browsers) */
+::-webkit-scrollbar-thumb {
+    background: var(--sunbeth-orange);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--sunbeth-orange-dark);
+}
+
+/* Print styles - maintain Sunbeth branding */
+@media print {
+    .company-header-border,
+    .border-bottom-sunbeth {
+        border-bottom-color: var(--sunbeth-orange) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .bg-sunbeth,
+    .badge-sunbeth {
+        background-color: var(--sunbeth-orange) !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .text-sunbeth,
+    .invoice-accent,
+    .invoice-total {
+        color: var(--sunbeth-orange) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .btn-sunbeth,
+    .btn-accent,
+    .btn-warning {
+        padding: 0.65rem 1.25rem;
+    }
+    
+    .badge-sunbeth {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Utility classes for quick Sunbeth branding */
+.sunbeth-highlight {
+    background: linear-gradient(to right, transparent, var(--sunbeth-orange-bg), transparent);
+    padding: 0.5rem 0;
+}
+
+.sunbeth-underline {
+    text-decoration: underline;
+    text-decoration-color: var(--sunbeth-orange);
+    text-decoration-thickness: 2px;
+}
+
+.sunbeth-border-left {
+    border-left: 4px solid var(--sunbeth-orange);
+    padding-left: 1rem;
+}
+
+.sunbeth-border-right {
+    border-right: 4px solid var(--sunbeth-orange);
+    padding-right: 1rem;
+}

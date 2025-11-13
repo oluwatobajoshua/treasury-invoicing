@@ -1,0 +1,76 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: travel-request-app
+  PHP_VERSION: '8.1'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v3
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, intl, pdo_mysql, xml, curl, openssl, fileinfo
+        coverage: none
+        tools: composer:v2
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    - name: Install Dependencies
+      run: composer install --no-dev --optimize-autoloader --prefer-dist --no-progress --no-interaction
+
+    - name: Create deployment artifact
+      run: |
+        mkdir -p deployment
+        cp -r . deployment/
+        cd deployment
+        rm -rf .git .github tests
+        tar -czf ../app.tar.gz .
+        cd ..
+        rm -rf deployment
+
+    - name: Upload artifact for deployment
+      uses: actions/upload-artifact@v3
+      with:
+        name: php-app
+        path: app.tar.gz
+
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: php-app
+
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: app.tar.gz
+
+    - name: Clear Azure Cache
+      run: |
+        echo "Deployment completed. Cache will be cleared on first request."

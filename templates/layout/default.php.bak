@@ -1,0 +1,229 @@
+<?php
+/**
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         0.10.0
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
+ * @var \App\View\AppView $this
+ */
+
+$cakeDescription = 'Travel Request System';
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <?= $this->Html->charset() ?>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+        <?= $cakeDescription ?>:
+        <?= $this->fetch('title') ?>
+    </title>
+    <?= $this->Html->meta('icon') ?>
+    <?= $this->Html->meta('csrfToken', $this->request->getAttribute('csrfToken')) ?>
+
+    <?= $this->Html->css(['sunbeth-theme']) ?>
+    
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <?= $this->fetch('meta') ?>
+    <?= $this->fetch('css') ?>
+    <?= $this->fetch('script') ?>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <div class="brand">
+                <div class="brand-icon">✈️</div>
+                <div class="brand-text">
+                    <h1 class="h1">Travel Request</h1>
+                    <span class="brand-subtitle">Management System</span>
+                </div>
+            </div>
+            <?php if ($this->request->getSession()->read('Auth.User')): ?>
+            <div class="user">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <?= substr($this->request->getSession()->read('Auth.User.name') ?? 'U', 0, 1) ?>
+                    </div>
+                    <span class="user-name"><?= h($this->request->getSession()->read('Auth.User.name') ?? 'User') ?></span>
+                    <a href="#" onclick="confirmLogout(event)" class="btn btn-sm btn-outline" style="margin-left: 1rem;">🚪 Logout</a>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="user">
+                <?= $this->Html->link('🔐 Sign In', ['controller' => 'Auth', 'action' => 'login'], ['class' => 'btn btn-sm btn-primary']) ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </header>
+    <div class="wrap">
+        <div class="container">
+            <?= $this->Flash->render() ?>
+            <?= $this->fetch('content') ?>
+        </div>
+        <footer>
+            <p>&copy; <?= date('Y') ?> Travel Request System. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Global SweetAlert2 Helper Functions -->
+    <script>
+        // Global SweetAlert2 configuration
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+        
+        // Success notification
+        function showSuccess(message, title = 'Success!') {
+            Toast.fire({
+                icon: 'success',
+                title: title,
+                text: message
+            });
+        }
+        
+        // Error notification
+        function showError(message, title = 'Error!') {
+            Toast.fire({
+                icon: 'error',
+                title: title,
+                text: message
+            });
+        }
+        
+        // Warning notification
+        function showWarning(message, title = 'Warning!') {
+            Toast.fire({
+                icon: 'warning',
+                title: title,
+                text: message
+            });
+        }
+        
+        // Info notification
+        function showInfo(message, title = 'Info') {
+            Toast.fire({
+                icon: 'info',
+                title: title,
+                text: message
+            });
+        }
+        
+        // Confirmation dialog
+        function confirmAction(title, text, confirmText = 'Yes, proceed!', cancelText = 'Cancel') {
+            return Swal.fire({
+                title: title,
+                text: text,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0c5343',
+                cancelButtonColor: '#d33',
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                reverseButtons: true
+            });
+        }
+        
+        // Delete confirmation
+        function confirmDelete(itemName = 'this item') {
+            return Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete ${itemName}. This action cannot be undone!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '🗑️ Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
+        }
+        
+        // Loading dialog
+        function showLoading(title = 'Please wait...', text = 'Processing your request') {
+            Swal.fire({
+                title: title,
+                text: text,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
+        // Close loading dialog
+        function hideLoading() {
+            Swal.close();
+        }
+        
+        // Logout confirmation
+        function confirmLogout(event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Ready to leave?',
+                text: 'Are you sure you want to logout?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0c5343',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '🚪 Yes, logout',
+                cancelButtonText: 'Stay',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showLoading('Logging out...', 'Please wait');
+                    window.location.href = '<?= $this->Url->build(['controller' => 'Auth', 'action' => 'logout']) ?>';
+                }
+            });
+        }
+        
+        // Display flash messages from PHP
+        <?php
+        $session = $this->request->getSession();
+        $flashMessages = [
+            'success' => $session->read('Flash.success'),
+            'error' => $session->read('Flash.error'),
+            'warning' => $session->read('Flash.warning'),
+            'info' => $session->read('Flash.info')
+        ];
+        
+        foreach ($flashMessages as $type => $messages) {
+            if ($messages) {
+                foreach ((array)$messages as $message) {
+                    if (is_array($message) && isset($message['message'])) {
+                        $messageText = $message['message'];
+                    } else {
+                        $messageText = $message;
+                    }
+                    echo "show" . ucfirst($type) . "(" . json_encode($messageText) . ");\n";
+                }
+                $session->delete("Flash.$type");
+            }
+        }
+        ?>
+    </script>
+    
+    <?= $this->fetch('postLink') ?>
+</body>
+</html>

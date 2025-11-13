@@ -1,0 +1,180 @@
+<?php
+declare(strict_types=1);
+
+use Migrations\AbstractSeed;
+
+/**
+ * JobLevelsAndAllowances seed.
+ */
+class JobLevelsAndAllowancesSeed extends AbstractSeed
+{
+    /**
+     * Run Method.
+     *
+     * @return void
+     */
+    public function run(): void
+    {
+        // Insert Job Levels
+        $jobLevels = [
+            [
+                'level_name' => 'Executive Level',
+                'level_code' => 'EXE',
+                'description' => 'C-Level Executives, Directors',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            [
+                'level_name' => 'Senior Management',
+                'level_code' => 'SM',
+                'description' => 'Senior Managers, Department Heads',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            [
+                'level_name' => 'Middle Management',
+                'level_code' => 'MM',
+                'description' => 'Managers, Team Leaders',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            [
+                'level_name' => 'Junior Staff',
+                'level_code' => 'JS',
+                'description' => 'Officers, Associates, Junior Employees',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+        ];
+
+        $jobLevelsTable = $this->table('job_levels');
+        $jobLevelsTable->insert($jobLevels)->save();
+
+        // Insert Allowance Rates for all levels
+        $allowanceRates = [
+            // Executive Level - Local Travel
+            [
+                'job_level_id' => 1,
+                'travel_type' => 'local',
+                'accommodation_rate' => '50000.00',
+                'feeding_rate' => '25000.00',
+                'transport_rate' => '15000.00',
+                'incidental_rate' => '10000.00',
+                'currency' => 'NGN',
+                'flight_class' => 'Business Class',
+                'hotel_standard' => '5-Star',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            // Executive Level - International Travel
+            [
+                'job_level_id' => 1,
+                'travel_type' => 'international',
+                'accommodation_rate' => '400.00',
+                'feeding_rate' => '200.00',
+                'transport_rate' => '150.00',
+                'incidental_rate' => '100.00',
+                'currency' => 'USD',
+                'flight_class' => 'Business Class',
+                'hotel_standard' => '5-Star International',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            
+            // Senior Management - Local Travel
+            [
+                'job_level_id' => 2,
+                'travel_type' => 'local',
+                'accommodation_rate' => '35000.00',
+                'feeding_rate' => '18000.00',
+                'transport_rate' => '12000.00',
+                'incidental_rate' => '8000.00',
+                'currency' => 'NGN',
+                'flight_class' => 'Economy Plus',
+                'hotel_standard' => '4-Star',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            // Senior Management - International Travel
+            [
+                'job_level_id' => 2,
+                'travel_type' => 'international',
+                'accommodation_rate' => '300.00',
+                'feeding_rate' => '150.00',
+                'transport_rate' => '100.00',
+                'incidental_rate' => '75.00',
+                'currency' => 'USD',
+                'flight_class' => 'Economy Plus',
+                'hotel_standard' => '4-Star International',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            
+            // Middle Management - Local Travel
+            [
+                'job_level_id' => 3,
+                'travel_type' => 'local',
+                'accommodation_rate' => '25000.00',
+                'feeding_rate' => '12000.00',
+                'transport_rate' => '8000.00',
+                'incidental_rate' => '5000.00',
+                'currency' => 'NGN',
+                'flight_class' => 'Economy',
+                'hotel_standard' => '3-Star',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            // Middle Management - International Travel
+            [
+                'job_level_id' => 3,
+                'travel_type' => 'international',
+                'accommodation_rate' => '200.00',
+                'feeding_rate' => '100.00',
+                'transport_rate' => '75.00',
+                'incidental_rate' => '50.00',
+                'currency' => 'USD',
+                'flight_class' => 'Economy',
+                'hotel_standard' => '3-Star International',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            
+            // Junior Staff - Local Travel
+            [
+                'job_level_id' => 4,
+                'travel_type' => 'local',
+                'accommodation_rate' => '15000.00',
+                'feeding_rate' => '8000.00',
+                'transport_rate' => '5000.00',
+                'incidental_rate' => '3000.00',
+                'currency' => 'NGN',
+                'flight_class' => 'Economy',
+                'hotel_standard' => 'Budget Hotel',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+            // Junior Staff - International Travel
+            [
+                'job_level_id' => 4,
+                'travel_type' => 'international',
+                'accommodation_rate' => '150.00',
+                'feeding_rate' => '75.00',
+                'transport_rate' => '50.00',
+                'incidental_rate' => '35.00',
+                'currency' => 'USD',
+                'flight_class' => 'Economy',
+                'hotel_standard' => 'Budget Hotel',
+                'created' => date('Y-m-d H:i:s'),
+                'modified' => date('Y-m-d H:i:s'),
+            ],
+        ];
+
+        $allowanceRatesTable = $this->table('allowance_rates');
+        $allowanceRatesTable->insert($allowanceRates)->save();
+
+        // Update the existing user to have a job level (Middle Management)
+        $this->execute(
+            "UPDATE users SET job_level_id = 3 WHERE id = 1"
+        );
+    }
+}

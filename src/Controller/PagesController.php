@@ -48,6 +48,17 @@ class PagesController extends AppController
         if (!$path) {
             return $this->redirect('/');
         }
+        
+        // Home page: guests only. If authenticated, immediately redirect to dashboard.
+        if (!empty($path[0]) && $path[0] === 'home') {
+            $session = $this->request->getSession();
+            $user = $session->read('Auth.User');
+            \Cake\Log\Log::debug('[Pages] Home accessed. loggedIn=' . ($user ? 'yes' : 'no'));
+            if ($user) {
+                return $this->redirect(['controller' => 'TravelRequests', 'action' => 'index']);
+            }
+        }
+        
         if (in_array('..', $path, true) || in_array('.', $path, true)) {
             throw new ForbiddenException();
         }

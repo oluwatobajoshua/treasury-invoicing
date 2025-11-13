@@ -1,0 +1,61 @@
+/* Admin additional styles: tables, nav spacing, and utility tweaks */
+
+.nav-links { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.table thead th { background: var(--gray-50); color: var(--primary); font-weight: 600; font-size: 0.9rem; border-bottom: 1px solid var(--gray-200); }
+.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+.table tr:hover { background: var(--gray-50); }
+.table tr:last-child td { border-bottom: none; }
+
+.paginator { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.pagination { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0; }
+.pagination li { display: inline-block; }
+.pagination a { padding: 6px 10px; border: 1px solid var(--gray-200); border-radius: 6px; text-decoration: none; color: var(--primary); }
+.pagination a:hover { background: var(--gray-50); }
+
+/* Force DataTables length control on one line across admin pages */
+.dataTables_length label {
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0.25rem 0;
+}
+.dataTables_length select {
+	display: inline-block;
+	width: auto;
+}
+/* Admin additional styles: tables, nav spacing, and utility tweaks */
+
+.nav-links { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.table thead th { background: var(--gray-50); color: var(--primary); font-weight: 600; font-size: 0.9rem; border-bottom: 1px solid var(--gray-200); }
+.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+.table tr:hover { background: var(--gray-50); }
+.table tr:last-child td { border-bottom: none; }
+
+.paginator { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.pagination { list-style: none; display: flex; gap: 6px; padding: 0; margin: 0; }
+.pagination li { display: inline-block; }
+.pagination a { padding: 6px 10px; border: 1px solid var(--gray-200); border-radius: 6px; text-decoration: none; color: var(--primary); }
+.pagination a:hover { background: var(--gray-50); }
+
+main.container { padding: 0 16px; }
+
+/* Flash messages */
+.cake-error, .message, .flash-message { padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
+.message { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.cake-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* Forms */
+form fieldset { border: 0; padding: 0; margin: 0 0 12px; }
+form legend { font-weight: 600; margin-bottom: 8px; }
+form .input, form .form-group { margin-bottom: 12px; }
+
+/* Buttons tighten */
+.button, button, .btn { cursor: pointer; }
+
+/* Make links look like buttons where appropriate */
+a.button, a.btn { text-decoration: none; }
