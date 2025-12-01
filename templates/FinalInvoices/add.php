@@ -202,12 +202,50 @@ $this->assign('title', $finalInvoice->isNew() ? 'Add Final Invoice' : 'Edit Fina
             </table>
             
             <!-- Amount Payable -->
-            <div style="background:#f9f9f9;border:2px solid #0c5343;border-radius:8px;padding:1.5rem;margin-bottom:2rem">
+            <div style="background:#f9f9f9;border:2px solid #0c5343;border-radius:8px;padding:1.5rem;margin-bottom:1rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
                     <div style="font-size:1.2rem;font-weight:700;color:#333">
-                        AMOUNT PAYABLE @ <span id="payable-percent" style="color:#ff5722">0</span>%
+                        TOTAL VALUE
                     </div>
-                    <div id="calc-total" style="font-size:1.8rem;font-weight:800;color:#ff5722">$0.00</div>
+                    <div id="calc-total" style="font-size:1.8rem;font-weight:800;color:#0c5343">$0.00</div>
+                </div>
+            </div>
+
+            <!-- Amount Paid (Fresh Invoice) - EDITABLE -->
+            <div style="background:#fff7f3;border:2px solid #ff5722;border-radius:8px;padding:1.5rem;margin-bottom:1rem">
+                <div style="display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center">
+                    <div>
+                        <span class="meta-label" style="display:block;margin-bottom:.5rem">LESS AMOUNT PAID (Fresh Invoice)</span>
+                        <?= $this->Form->control('amount_paid', [
+                            'label' => false,
+                            'type' => 'number',
+                            'step' => '0.01',
+                            'id' => 'amount-paid',
+                            'required' => true,
+                            'placeholder' => '0.00',
+                            'style' => 'width:100%;padding:.75rem;text-align:right;font-weight:700;border:2px solid #ff5722;border-radius:4px;font-size:1.1rem;box-sizing:border-box'
+                        ]) ?>
+                        <small style="color:#666;display:block;margin-top:.5rem">
+                            <i class="fas fa-info-circle"></i> Amount already paid via Fresh Invoice (editable)
+                        </small>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:.9rem;color:#666;margin-bottom:.5rem">Suggested:</div>
+                        <div id="suggested-amount-paid" style="font-size:1.3rem;font-weight:700;color:#999">$0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amount Due Calculation -->
+            <div style="background:#e3f2fd;border:3px solid #2196f3;border-radius:8px;padding:1.5rem;margin-bottom:2rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+                    <div style="font-size:1.4rem;font-weight:800;color:#111827">
+                        AMOUNT DUE
+                    </div>
+                    <div id="amount-due" style="font-size:2rem;font-weight:900;color:#ff5722">$0.00</div>
+                </div>
+                <div id="amount-due-status" style="margin-top:.75rem;padding:.75rem;border-radius:4px;font-size:.85rem;display:none">
+                    <!-- Status message will be inserted here by JavaScript -->
                 </div>
             </div>
 
@@ -270,81 +308,193 @@ style.innerHTML = '@keyframes spin{to{transform:rotate(360deg)}}';
 document.head.appendChild(style);
 
 function calculateValues() {
-    const landedQuantity = parseFloat(document.getElementById('landed-quantity').value) || 0;
-    const originalQuantity = parseFloat(document.getElementById('original-quantity').value) || 0;
-    const unitPrice = parseFloat(document.getElementById('unit-price').value) || 0;
-    const paymentPercentage = parseFloat(document.getElementById('payment-percentage').value) || 0;
+    // Safely get values with null checks
+    const getValueSafe = (id) => {
+        const el = document.getElementById(id);
+        return el ? parseFloat(el.value) || 0 : 0;
+    };
+    
+    const getElementSafe = (id) => {
+        return document.getElementById(id);
+    };
+    
+    const landedQuantity = getValueSafe('landed-quantity');
+    const originalQuantity = getValueSafe('original-quantity');
+    const unitPrice = getValueSafe('unit-price');
+    const amountPaid = getValueSafe('amount-paid');
+    const paymentPercentage = getValueSafe('payment-percentage');
 
-    const subtotal = landedQuantity * unitPrice;
-    const total = subtotal * (paymentPercentage / 100);
+    const totalValue = landedQuantity * unitPrice;
+    const amountDue = totalValue - amountPaid;
+    
     // Only compute variance when landed quantity entered; otherwise show em dash
     let varianceText = '—';
     let varianceVal = null;
-    if (document.getElementById('landed-quantity').value !== '') {
+    const landedEl = getElementSafe('landed-quantity');
+    if (landedEl && landedEl.value !== '') {
         varianceVal = landedQuantity - originalQuantity; // positive means landed > original
         varianceText = varianceVal.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
     }
 
-    document.getElementById('row-total').textContent = '$' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('calc-total').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    // Safely update displays
+    const updateTextSafe = (id, text) => {
+        const el = getElementSafe(id);
+        if (el) el.textContent = text;
+    };
+    
+    updateTextSafe('row-total', '$' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    updateTextSafe('calc-total', '$' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    updateTextSafe('amount-due', '$' + amountDue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
 
-    const pill = document.getElementById('variance-pill');
-    pill.textContent = varianceText;
-    pill.classList.remove('pos','neg');
-    if (varianceVal !== null) {
-        if (varianceVal >= 0) pill.classList.add('pos'); else pill.classList.add('neg');
-    }
-    document.getElementById('payable-percent').textContent = (paymentPercentage || 0).toString();
-}
-
-const landedEl = document.getElementById('landed-quantity');
-if (landedEl) landedEl.addEventListener('input', calculateValues);
-
-// Load fresh invoice details when selected
-const freshSelect = document.getElementById('fresh-invoice-select');
-if (freshSelect) {
-    freshSelect.addEventListener('change', function() {
-        const freshInvoiceId = this.value;
-        if (freshInvoiceId) {
-            const spinner = document.getElementById('fetch-spinner');
-            if (spinner) spinner.classList.add('show');
-            fetch('<?= $this->Url->build(["controller" => "FinalInvoices", "action" => "getFreshInvoiceDetails"]) ?>?fresh_invoice_id=' + freshInvoiceId)
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.error) {
-                        document.getElementById('original-invoice-number').value = data.invoice_number || '';
-                        document.getElementById('vessel-name').value = data.vessel_name || '';
-                        document.getElementById('bl-number').value = data.bl_number || '';
-                        document.getElementById('unit-price').value = data.unit_price || 0;
-                        document.getElementById('payment-percentage').value = data.payment_percentage || 0;
-                        const sgc = document.getElementById('sgc-account-id');
-                        const sgcAlt = document.getElementById('sgc-account');
-                        const sgcTarget = sgc || sgcAlt;
-                        if (sgcTarget) sgcTarget.value = data.sgc_account_id || '';
-                        document.getElementById('original-quantity').value = (data.quantity ?? 0);
-                        // Packaging display
-                        const pack = document.getElementById('packaging-display');
-                        if (pack) pack.textContent = (data.bulk_or_bag || '—');
-                        calculateValues();
-                        // focus landed qty for quick entry
-                        const landed = document.getElementById('landed-quantity');
-                        if (landed) landed.focus();
-                    } else {
-                        console.error('Error from server:', data.error);
-                        alert('Error loading Fresh Invoice details: ' + data.error);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error loading fresh invoice:', err);
-                    alert('Failed to load Fresh Invoice details. Please try again.');
-                })
-                .finally(() => { 
-                    const spinner = document.getElementById('fetch-spinner'); 
-                    if (spinner) spinner.classList.remove('show'); 
-                });
+    // Update amount due status and color
+    const statusDiv = getElementSafe('amount-due-status');
+    const amountDueDisplay = getElementSafe('amount-due');
+    
+    if (statusDiv && amountDueDisplay) {
+        if (amountDue > 0) {
+            amountDueDisplay.style.color = '#ff5722'; // Orange - payment due
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#fff3e0';
+            statusDiv.style.borderLeft = '4px solid #ff5722';
+            statusDiv.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Payment Due:</strong> Client owes additional ' + amountDue.toLocaleString('en-US', {style: 'currency', currency: 'USD'});
+        } else if (amountDue < 0) {
+            amountDueDisplay.style.color = '#ef4444'; // Red - overpaid
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ffebee';
+            statusDiv.style.borderLeft = '4px solid #ef4444';
+            statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <strong>Overpayment:</strong> Client paid ' + Math.abs(amountDue).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) + ' more than landed value';
+        } else {
+            amountDueDisplay.style.color = '#10b981'; // Green - balanced
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#d1fae5';
+            statusDiv.style.borderLeft = '4px solid #10b981';
+            statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> <strong>Balanced:</strong> Payment matches landed quantity value exactly';
         }
-    });
+    }
+
+    const pill = getElementSafe('variance-pill');
+    if (pill) {
+        pill.textContent = varianceText;
+        pill.classList.remove('pos','neg');
+        if (varianceVal !== null) {
+            if (varianceVal >= 0) pill.classList.add('pos'); else pill.classList.add('neg');
+        }
+    }
+    
+    updateTextSafe('payable-percent', paymentPercentage.toString());
 }
 
-document.addEventListener('DOMContentLoaded', calculateValues);
+// Wait for DOM to be ready before attaching event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach event listeners for real-time calculation
+    const landedEl = document.getElementById('landed-quantity');
+    if (landedEl) landedEl.addEventListener('input', calculateValues);
+    
+    const amountPaidEl = document.getElementById('amount-paid');
+    if (amountPaidEl) amountPaidEl.addEventListener('input', calculateValues);
+
+    // Load fresh invoice details when selected
+    const freshSelect = document.getElementById('fresh-invoice-select');
+    if (freshSelect) {
+        freshSelect.addEventListener('change', function() {
+            const freshInvoiceId = this.value;
+            if (freshInvoiceId) {
+                const spinner = document.getElementById('fetch-spinner');
+                if (spinner) spinner.classList.add('show');
+                fetch('<?= $this->Url->build(["controller" => "FinalInvoices", "action" => "getFreshInvoiceDetails"]) ?>?fresh_invoice_id=' + freshInvoiceId)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error from server:', data.error);
+                            alert('Error loading Fresh Invoice details: ' + data.error);
+                            return;
+                        }
+                        
+                        // Safely populate form fields with null checks
+                        try {
+                            const setValueIfExists = (id, value) => {
+                                const el = document.getElementById(id);
+                                if (el) {
+                                    el.value = value || '';
+                                    return true;
+                                }
+                                console.warn('Element not found:', id);
+                                return false;
+                            };
+                            
+                            const setTextIfExists = (id, text) => {
+                                const el = document.getElementById(id);
+                                if (el) {
+                                    el.textContent = text || '';
+                                    return true;
+                                }
+                                console.warn('Element not found:', id);
+                                return false;
+                            };
+                            
+                            setValueIfExists('original-invoice-number', data.invoice_number);
+                            setValueIfExists('vessel-name', data.vessel_name);
+                            setValueIfExists('bl-number', data.bl_number);
+                            setValueIfExists('unit-price', data.unit_price || 0);
+                            setValueIfExists('payment-percentage', data.payment_percentage || 0);
+                            
+                            // Set amount paid and suggested amount (Fresh Invoice total_value)
+                            const freshTotalValue = parseFloat(data.total_value) || 0;
+                            setValueIfExists('amount-paid', freshTotalValue.toFixed(2));
+                            
+                            const suggestedEl = document.getElementById('suggested-amount-paid');
+                            if (suggestedEl) {
+                                suggestedEl.textContent = '$' + freshTotalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            }
+                            
+                            // Handle SGC account (try both possible IDs)
+                            const sgc = document.getElementById('sgc-account-id');
+                            const sgcAlt = document.getElementById('sgc-account');
+                            const sgcTarget = sgc || sgcAlt;
+                            if (sgcTarget) sgcTarget.value = data.sgc_account_id || '';
+                            
+                            setValueIfExists('original-quantity', data.quantity ?? 0);
+                            
+                            // Packaging display
+                            setTextIfExists('packaging-display', data.bulk_or_bag || '—');
+                            
+                            // Pre-fill landed quantity with original quantity (user can adjust)
+                            const landedQtyInput = document.getElementById('landed-quantity');
+                            if (landedQtyInput && !landedQtyInput.value) {
+                                landedQtyInput.value = (data.quantity ?? 0).toFixed(3);
+                            }
+                            
+                            calculateValues();
+                            
+                            // Focus landed qty for quick entry
+                            const landed = document.getElementById('landed-quantity');
+                            if (landed) landed.focus();
+                            
+                        } catch (error) {
+                            console.error('Error populating form fields:', error);
+                            console.error('Error details:', error.message, error.stack);
+                            // Don't show alert - data is loaded, just some display issue
+                            // alert('Error populating form fields. Please try again.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error loading fresh invoice:', err);
+                        alert('Failed to load Fresh Invoice details. Please try again.');
+                    })
+                    .finally(() => { 
+                        const spinner = document.getElementById('fetch-spinner'); 
+                        if (spinner) spinner.classList.remove('show'); 
+                    });
+            }
+        });
+    }
+    
+    // Run initial calculation
+    calculateValues();
+});
 </script>

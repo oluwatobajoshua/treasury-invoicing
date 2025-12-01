@@ -431,18 +431,34 @@ $this->disableAutoLayout();
         <div class="hero-icon">📊</div>
         <h1>Treasury Invoicing System</h1>
         <p>Streamline your cocoa export invoicing with automated calculations, multi-level approvals, and real-time tracking from fresh to final invoices.</p>
-        <?php $session = $this->request->getSession(); $loggedIn = (bool)$session->read('Auth.User'); ?>
-        <a href="<?= $loggedIn 
-            ? $this->Url->build(['controller' => 'FreshInvoices', 'action' => 'index']) 
-            : $this->Url->build(['controller' => 'Auth', 'action' => 'login']) ?>" class="cta-button">
-            <svg width="20" height="20" viewBox="0 0 21 21" fill="currentColor">
-                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-            </svg>
-            Sign in with Microsoft
-        </a>
+        <?php 
+        $session = $this->request->getSession(); 
+        $loggedIn = (bool)$session->read('Auth.User');
+        $user = $session->read('Auth.User');
+        $isAdmin = $loggedIn && isset($user['role']) && $user['role'] === 'admin';
+        ?>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+            <a href="<?= $loggedIn 
+                ? $this->Url->build(['controller' => 'FreshInvoices', 'action' => 'index']) 
+                : $this->Url->build(['controller' => 'Auth', 'action' => 'login']) ?>" class="cta-button">
+                <svg width="20" height="20" viewBox="0 0 21 21" fill="currentColor">
+                    <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Sign in with Microsoft
+            </a>
+            
+            <?php if ($isAdmin): ?>
+                <a href="<?= $this->Url->build(['controller' => 'Dashboard', 'action' => 'index', 'prefix' => 'Admin']) ?>" 
+                   class="cta-button" 
+                   style="background:linear-gradient(135deg,#ff5722 0%,#f4511e 100%);color:white;">
+                    <i class="fas fa-cog"></i>
+                    Admin Dashboard
+                </a>
+            <?php endif; ?>
+        </div>
     </div>
 </section>
 

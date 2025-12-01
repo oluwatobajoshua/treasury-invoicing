@@ -78,6 +78,9 @@ class AppController extends Controller
         if ($controller === 'Auth') {
             // All auth actions are public
             $isPublic = true;
+        } elseif ($controller === 'Approvals') {
+            // Approval links from email are public (protected by signed token)
+            $isPublic = true;
         } elseif ($controller === 'Pages' && $action === 'display' && !empty($pass) && $pass[0] === 'home') {
             // Landing page (when Router populated pass)
             $isPublic = true;
@@ -136,12 +139,60 @@ class AppController extends Controller
         // Authenticated user - expose user globally
         $this->set('authUser', $user);
         
+        // Check for session timeout and token expiration
+        $this->checkSessionTimeout($session);
+        
         // Prevent post-login infinite redirect chains: if the stored redirect equals current page, clear it
         $savedRedirect = $session->read('Auth.redirect');
         if ($savedRedirect && $savedRedirect === $currentUrl) {
             Log::debug('[Auth] Clearing redundant Auth.redirect value: ' . $savedRedirect);
             $session->delete('Auth.redirect');
         }
+    }
+
+    /**
+     * Authorization hook - check if authenticated user can access current action.
+     * Uses RBAC system to enforce role-based permissions.
+     *
+     * @param array|null $user User data from session
+     * @return bool True if authorized, false otherwise
+     */
+    public function isAuthorized($user): bool
+    {
+        // If no user (shouldn't happen as beforeFilter protects), deny
+        if (!$user) {
+            return false;
+        }
+
+        // Get controller and action from request
+        $controller = $this->request->getParam('controller');
+        $action = $this->request->getParam('action');
+
+        // Auth controller is always allowed (login/logout/callback)
+        if ($controller === 'Auth') {
+            return true;
+        }
+
+        // Pages controller is public
+        if ($controller === 'Pages') {
+            return true;
+        }
+
+        // Check RBAC permissions
+        $authorized = \App\Security\Rbac::can($user, $controller, $action);
+
+        // Log authorization check for debugging
+        if (!$authorized) {
+            Log::warning(sprintf(
+                '[RBAC] Access denied for user %s (role: %s) to %s::%s',
+                $user['email'] ?? 'unknown',
+                $user['role'] ?? 'none',
+                $controller,
+                $action
+            ));
+        }
+
+        return $authorized;
     }
 
     /**
@@ -156,5 +207,46 @@ class AppController extends Controller
         $target = is_array($url) ? Router::url($url) : (string)$url;
         Log::debug(sprintf('[Redirect] %s => %s (status=%d)', $this->request->getRequestTarget(), $target, $status));
         return parent::redirect($url, $status);
+    }
+
+    /**
+     * Check session timeout and token expiration
+     * 
+     * @param \Cake\Http\Session $session Session instance
+     * @return \Cake\Http\Response|null
+     */
+    protected function checkSessionTimeout($session)
+    {
+        $lastActivity = $session->read('Auth.LastActivity');
+        $accessToken = $session->read('Auth.AccessToken');
+        $tokenExpiry = $session->read('Auth.TokenExpiry');
+        
+        // Session timeout: 2 hours of inactivity
+        $sessionTimeout = 7200; // 2 hours in seconds
+        
+        if ($lastActivity) {
+            $inactiveTime = time() - $lastActivity;
+            
+            if ($inactiveTime > $sessionTimeout) {
+                // Session has timed out due to inactivity
+                Log::info('Session timeout: User inactive for ' . round($inactiveTime / 60) . ' minutes');
+                $session->delete('Auth');
+                $this->Flash->warning('Your session has expired due to inactivity. Please login again.');
+                return $this->redirect(['controller' => 'Auth', 'action' => 'login']);
+            }
+        }
+        
+        // Check if access token has expired (tokens typically last 1 hour)
+        if ($tokenExpiry && time() >= $tokenExpiry) {
+            Log::info('Access token expired. User needs to re-authenticate.');
+            $session->delete('Auth');
+            $this->Flash->warning('Your access token has expired. Please login again to continue.');
+            return $this->redirect(['controller' => 'Auth', 'action' => 'login']);
+        }
+        
+        // Update last activity timestamp
+        $session->write('Auth.LastActivity', time());
+        
+        return null;
     }
 }

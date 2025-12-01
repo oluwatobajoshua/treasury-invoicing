@@ -37,5 +37,16 @@ class AppView extends View
      */
     public function initialize(): void
     {
+        // Load app-specific settings helper
+        $this->loadHelper('AppSettings');
+
+        // Ensure Paginator always has a sane default model based on the current controller
+        // This prevents Inflector::tableize(null) errors when views call Paginator without an explicit model
+        $controller = $this->getRequest()->getParam('controller');
+        if ($controller) {
+            $this->loadHelper('Paginator', ['model' => $controller]);
+        } else {
+            $this->loadHelper('Paginator');
+        }
     }
 }

@@ -49,6 +49,7 @@ class FinalInvoice extends Entity
         'vessel_name' => true,
         'bl_number' => true,
         'unit_price' => true,
+        'amount_paid' => true,
         'payment_percentage' => true,
         'total_value' => true,
         'sgc_account_id' => true,

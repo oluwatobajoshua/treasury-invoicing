@@ -1,4 +1,15 @@
 <?php
+// SweetAlert2 default/info flash element
+?>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof showInfo === 'function') {
+            showInfo(<?= json_encode((string)($message ?? 'Notice')) ?>, 'Notice');
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'info', title: 'Notice', text: <?= json_encode((string)($message ?? 'Notice')) ?> });
+        }
+    });
+</script><?php
 /**
  * @var \App\View\AppView $this
  * @var array $params

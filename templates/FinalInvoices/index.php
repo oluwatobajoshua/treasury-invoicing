@@ -5,6 +5,8 @@
  * @var array $kpis
  */
 $this->assign('title', 'Final Invoices');
+// NOTE: Removed invalid call to setDefaultModel() which doesn't exist in CakePHP 4.
+// If multiple models are paginated, pass 'model' option to sort() explicitly.
 ?>
 
 <style>
@@ -312,7 +314,7 @@ tbody tr:hover {
     </div>
 
     <div class="table-card">
-        <?php if (!empty($finalInvoices->count())): ?>
+        <?php if (count($finalInvoices) > 0): ?>
         <div class="table-responsive">
             <table id="final-invoices-table">
                 <thead>
@@ -350,7 +352,12 @@ tbody tr:hover {
                                 <?= $this->Html->link('View', ['action' => 'view', $finalInvoice->id], ['class' => 'btn-action', 'style' => 'color:#0288d1;font-size:.8rem;font-weight:600;text-decoration:none']) ?>
                                 <?php if ($finalInvoice->status === 'draft'): ?>
                                     <?= $this->Html->link('Edit', ['action' => 'edit', $finalInvoice->id], ['class' => 'btn-action', 'style' => 'color:#f57c00;font-size:.8rem;font-weight:600;text-decoration:none']) ?>
-                                    <?= $this->Form->postLink('Delete', ['action' => 'delete', $finalInvoice->id], ['confirm' => __('Delete invoice {0}?', $finalInvoice->invoice_number), 'class' => 'btn-action', 'style' => 'color:#c62828;font-size:.8rem;font-weight:600;text-decoration:none']) ?>
+                                    <?= $this->Form->postLink('Delete', ['action' => 'delete', $finalInvoice->id], [
+                                        'class' => 'btn-action js-swal-post',
+                                        'data-swal-title' => __('Delete invoice {0}?', $finalInvoice->invoice_number),
+                                        'data-swal-text' => __('This action cannot be undone.'),
+                                        'style' => 'color:#c62828;font-size:.8rem;font-weight:600;text-decoration:none'
+                                    ]) ?>
                                 <?php endif; ?>
                             </div>
                         </td>

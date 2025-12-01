@@ -6,40 +6,61 @@
 $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
 ?>
 
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <style>
 @media print {
     .no-print { display: none !important; }
     body { margin: 0; padding: 0; }
 }
+
+/* Modal must be hidden by default */
+.modal {
+    display: none;
+}
+
+.modal.show {
+    display: block;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
 .invoice-document{max-width:900px;margin:2rem auto;background:#fff;box-shadow:0 0 20px rgba(0,0,0,.1);font-family:Arial,sans-serif}
 .company-header{display:flex;justify-content:space-between;align-items:flex-start;padding:2rem 2rem 1rem;border-bottom:4px solid #ff5722}
 .company-logo img{max-height:80px;width:auto}
-.company-info{text-align:right;font-size:.85rem;line-height:1.8;color:#333}
+.company-info{text-align:right;font-size:.85rem;line-height:1.8;color:#374151}
 .company-info strong{font-weight:700}
-.invoice-date{padding:.5rem 2rem;text-align:left;font-size:.9rem;font-weight:600;color:#333}
+.invoice-date{padding:.5rem 2rem;text-align:left;font-size:.9rem;font-weight:600;color:#374151}
 .client-info{padding:1rem 2rem;font-size:.9rem;line-height:1.8}
-.client-info strong{display:block;font-weight:700;color:#000}
-.vessel-info{padding:.5rem 2rem;display:flex;justify-content:space-between;align-items:center}
-.vessel-info div{font-size:.9rem}
-.vessel-info strong{font-weight:700;color:#000}
+.client-info strong{display:block;font-weight:700;color:#111827}
 .invoice-title{text-align:center;font-size:1.5rem;font-weight:700;padding:1rem 0;text-decoration:underline;margin:1rem 0}
-.bl-invoice-row{padding:0 2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:1rem}
-.bl-invoice-row div{font-size:.9rem}
-.bl-invoice-row strong{font-weight:700;color:#000}
 .invoice-table{width:100%;border-collapse:collapse;margin:1rem 0}
 .invoice-table th,.invoice-table td{border:2px solid #0c5343;padding:.75rem;text-align:center;font-size:.85rem}
 .invoice-table th{background:linear-gradient(135deg,#0c5343 0%,#0a4636 100%);color:#fff;font-weight:700;text-transform:uppercase}
-.invoice-table td{background:#fff;color:#000}
+.invoice-table td{background:#fff;color:#111827}
 .invoice-table .desc-cell{text-align:left;font-weight:600}
 .invoice-table .price-cell{text-align:right;font-weight:600}
-.invoice-table .total-row td{font-weight:700;background:#f5f5f5}
+.invoice-table .total-row td{font-weight:700;background:#f9fafb}
 .amount-section{padding:1rem 2rem;text-align:right}
 .amount-row{display:flex;justify-content:flex-end;padding:.25rem 0;font-size:.95rem}
 .amount-row .label{margin-right:2rem;font-weight:600}
 .amount-row .value{font-weight:700;min-width:150px;text-align:right}
 .payment-details{padding:1rem 2rem 2rem;font-size:.85rem;line-height:1.8}
-.payment-details strong{display:block;font-weight:700;margin-top:.5rem}
-.action-buttons{padding:1rem 2rem;background:#f9f9f9;border-top:2px solid #e0e0e0;display:flex;gap:1rem;justify-content:center}
+.payment-details strong{font-weight:700;margin-right:.35rem}
+.action-buttons{padding:1rem 2rem;background:#f9fafb;border-top:2px solid #e5e7eb;display:flex;gap:1rem;justify-content:center}
 </style>
 
 <div class="no-print" style="max-width:900px;margin:0 auto;padding:1rem">
@@ -83,34 +104,31 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
 
     <!-- Client Information -->
     <div class="client-info">
-        <strong><?= h($freshInvoice->client->name ?? 'CLIENT NAME') ?></strong>
+        <strong><?= h($freshInvoice->client->name ?? 'CLIENT NAME') ?></strong><br>
         <?php if ($freshInvoice->has('client') && isset($freshInvoice->client->address)): ?>
             <?= h($freshInvoice->client->address) ?><br>
+        <?php endif; ?>
+        <?php if ($freshInvoice->has('client') && isset($freshInvoice->client->city)): ?>
+            <?= h($freshInvoice->client->city) ?><br>
         <?php endif; ?>
         <?php if ($freshInvoice->has('client') && isset($freshInvoice->client->phone)): ?>
             <?= h($freshInvoice->client->phone) ?>
         <?php endif; ?>
     </div>
 
-    <!-- Vessel Information -->
-    <div class="vessel-info">
-        <div>
-            <strong>Vessel:</strong> <?= h($freshInvoice->vessel->name ?? $freshInvoice->vessel_name ?? 'N/A') ?>
+    <!-- Vessel Information and BL/Invoice Numbers in one row -->
+    <div style="padding:0.5rem 2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:1rem">
+        <div style="font-size:0.9rem">
+            <strong style="font-weight:700;color:#111827">Vessel:</strong> <?= h($freshInvoice->vessel->name ?? $freshInvoice->vessel_name ?? 'N/A') ?> - <?= h($freshInvoice->contract->contract_id ?? 'N/A') ?>
+        </div>
+        <div style="text-align:right;font-size:0.9rem">
+            <strong style="font-weight:700;color:#111827">BL No.</strong> <?= h($freshInvoice->bl_number) ?><br>
+            <strong style="font-weight:700;color:#111827">Invoice No:</strong> <?= h($freshInvoice->invoice_number) ?>
         </div>
     </div>
 
     <!-- Invoice Title -->
     <div class="invoice-title">INVOICE</div>
-
-    <!-- BL and Invoice Number -->
-    <div class="bl-invoice-row">
-        <div>
-            <strong>BL No.</strong> <?= h($freshInvoice->bl_number) ?>
-        </div>
-        <div style="text-align:right">
-            <strong>Invoice No:</strong> <?= h($freshInvoice->invoice_number) ?>
-        </div>
-    </div>
 
     <!-- Invoice Table -->
     <table class="invoice-table" style="margin:0 2rem;width:calc(100% - 4rem)">
@@ -156,7 +174,7 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
 
     <!-- Payment Details -->
     <div class="payment-details">
-        <strong>Please Remit To:</strong>
+        <strong>Please Remit To:</strong><br>
         <?php if ($freshInvoice->has('sgc_account')): ?>
             <strong>Beneficiary Bank:</strong> <?= h($freshInvoice->sgc_account->bank_name ?? 'THE ACCESS BANK UK LIMITED') ?><br>
             <strong>Swift Code:</strong> <?= h($freshInvoice->sgc_account->swift_code ?? 'ABNGGB2L') ?><br>
@@ -176,7 +194,13 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
                 <strong>FEDWIRE/ABA:</strong> <?= h($freshInvoice->sgc_account->fedwire_aba) ?><br>
             <?php endif; ?>
         <?php endif; ?>
-        <strong>Purpose:</strong> <?= h($freshInvoice->notes ?? 'Cocoa export proceeds') ?>
+        <strong>Purpose:</strong> 
+        <span id="purpose-display"><?= h($freshInvoice->notes ?: 'Cocoa export proceeds') ?></span>
+        <button type="button" class="btn btn-sm no-print" 
+                style="padding:.25rem .5rem;font-size:.8rem;margin-left:.5rem;background:#ff5722;color:#fff;border:none;border-radius:4px;cursor:pointer"
+                data-bs-toggle="modal" data-bs-target="#editPurposeModal">
+            <i class="fas fa-edit"></i> Edit
+        </button>
     </div>
 
     <!-- Action Buttons (Print Hidden) -->
@@ -186,20 +210,25 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
                 '<i class="fas fa-paper-plane"></i> Submit for Approval',
                 ['action' => 'submitForApproval', $freshInvoice->id],
                 [
-                    'confirm' => 'Submit this invoice to Treasurer for approval?',
-                    'class' => 'btn btn-primary btn-lg',
+                    'class' => 'btn btn-primary btn-lg js-swal-post',
+                    'data-swal-title' => 'Submit for Approval?',
+                    'data-swal-text' => 'Send this invoice to the Treasurer for approval.',
                     'escape' => false
                 ]
             ) ?>
         <?php endif; ?>
-        
-        <?php if ($freshInvoice->status === 'pending_treasurer_approval' && $this->request->getAttribute('identity')->role === 'treasurer'): ?>
+
+        <?php 
+            $currentRole = $authUser['role'] ?? ($this->request->getSession()->read('Auth.User.role') ?? null);
+            if ($freshInvoice->status === 'pending_treasurer_approval' && $currentRole === 'treasurer'): 
+        ?>
             <?= $this->Form->postLink(
                 '<i class="fas fa-check"></i> Approve Invoice',
                 ['action' => 'treasurerApprove', $freshInvoice->id],
                 [
-                    'confirm' => 'Approve this invoice?',
-                    'class' => 'btn btn-success btn-lg',
+                    'class' => 'btn btn-success btn-lg js-swal-post',
+                    'data-swal-title' => 'Approve Invoice?',
+                    'data-swal-text' => 'This will approve the invoice.',
                     'escape' => false
                 ]
             ) ?>
@@ -207,8 +236,13 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
                 '<i class="fas fa-times"></i> Reject Invoice',
                 ['action' => 'treasurerReject', $freshInvoice->id],
                 [
-                    'confirm' => 'Reject this invoice?',
-                    'class' => 'btn btn-danger btn-lg',
+                    'class' => 'btn btn-danger btn-lg js-swal-post',
+                    'data-swal-title' => 'Reject Invoice?',
+                    'data-swal-text' => 'This will reject the invoice.',
+                    'data-require-comment' => '1',
+                    'data-comment-name' => 'treasurer_comments',
+                    'data-comment-title' => 'Rejection reason (required)',
+                    'data-comment-placeholder' => 'Enter the reason for rejection...',
                     'escape' => false
                 ]
             ) ?>
@@ -219,8 +253,9 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
                 '<i class="fas fa-share"></i> Send to Export Team',
                 ['action' => 'sendToExport', $freshInvoice->id],
                 [
-                    'confirm' => 'Send this invoice to Export team?',
-                    'class' => 'btn btn-primary btn-lg',
+                    'class' => 'btn btn-primary btn-lg js-swal-post',
+                    'data-swal-title' => 'Send to Export Team?',
+                    'data-swal-text' => 'This will forward the invoice to the Export team.',
                     'escape' => false
                 ]
             ) ?>
@@ -230,7 +265,7 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
 
 <!-- Status Badge (Print Hidden) -->
 <?php if ($freshInvoice->status !== 'draft'): ?>
-<div class="no-print" style="max-width:900px;margin:1rem auto;padding:1rem;background:#f9f9f9;border-radius:8px">
+<div class="no-print" style="max-width:900px;margin:1rem auto;padding:1rem;background:#f9fafb;border-radius:8px">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem">
         <div>
             <strong>Invoice Status:</strong><br>
@@ -265,3 +300,52 @@ $this->assign('title', 'Fresh Invoice #' . $freshInvoice->invoice_number);
     <?php endif; ?>
 </div>
 <?php endif; ?>
+
+<!-- Edit Purpose Modal -->
+<div class="modal fade" id="editPurposeModal" tabindex="-1" aria-labelledby="editPurposeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg, #0c5343 0%, #083d2f 100%);color:#fff">
+                <h5 class="modal-title" id="editPurposeModalLabel">
+                    <i class="fas fa-edit"></i> Edit Purpose
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <?= $this->Form->create($freshInvoice, [
+                'url' => ['action' => 'updatePurpose', $freshInvoice->id],
+                'id' => 'purposeForm'
+            ]) ?>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="purposeTextarea" class="form-label" style="font-weight:600;color:#374151">
+                        Purpose of Payment:
+                    </label>
+                    <?= $this->Form->textarea('notes', [
+                        'id' => 'purposeTextarea',
+                        'class' => 'form-control',
+                        'rows' => 4,
+                        'placeholder' => 'Enter purpose of payment (e.g., Cocoa export proceeds)',
+                        'style' => 'font-size:.9rem;border:1px solid #d1d5db;border-radius:6px;color:#374151',
+                        'value' => $freshInvoice->notes,
+                        'maxlength' => 500
+                    ]) ?>
+                    <small class="text-muted">Maximum 500 characters</small>
+                </div>
+            </div>
+            <div class="modal-footer" style="background:#f9fafb">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <?= $this->Form->button('<i class="fas fa-check"></i> Save Purpose', [
+                    'class' => 'btn',
+                    'style' => 'background:#0c5343;color:#fff',
+                    'escapeTitle' => false
+                ]) ?>
+            </div>
+            <?= $this->Form->end() ?>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Bundle JS (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

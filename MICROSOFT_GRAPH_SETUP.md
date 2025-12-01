@@ -1,7 +1,9 @@
 # Microsoft Graph Integration Setup
 
 ## Overview
-This application uses Microsoft Azure AD (Entra ID) for authentication and to fetch the list of employees/travelers from your organization's directory.
+# Microsoft Graph API Setup Guide
+
+This application uses Microsoft Azure AD (Entra ID) for authentication and to fetch the list of users from your organization's directory.
 
 ## Prerequisites
 - An Azure AD (Microsoft Entra ID) tenant
@@ -111,7 +113,7 @@ Note: The app now forces the account picker during login to avoid stuck Windows 
    1. Make sure you always use the same base URL as in `AZURE_REDIRECT_URI`.
    2. Avoid switching between `localhost` and `127.0.0.1` mid-flow.
    3. Disable aggressive privacy/cookie extensions for the test.
-   4. If needed add in `config/app_local.php` under `'Session'`: `['cookie' => 'travel_session', 'timeout' => 0]`.
+   4. If needed add in `config/app_local.php` under `'Session'`: `['cookie' => 'treasury_session', 'timeout' => 0]`.
    5. For Chrome/Edge, if running non-HTTPS, ensure no setting forces `SameSite=None` on insecure contexts.
 - After a successful callback, the log should not show state mismatch.
 

@@ -46,6 +46,7 @@ class ContractsTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->belongsTo('Clients', [
             'foreignKey' => 'client_id',

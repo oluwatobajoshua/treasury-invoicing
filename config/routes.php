@@ -69,6 +69,15 @@ return function (RouteBuilder $routes): void {
         $builder->connect('/login', ['controller' => 'Auth', 'action' => 'login']);
         $builder->connect('/logout', ['controller' => 'Auth', 'action' => 'logout']);
         $builder->connect('/auth/callback', ['controller' => 'Auth', 'action' => 'callback']);
+        $builder->connect('/auth/get-graph-users', ['controller' => 'Auth', 'action' => 'getGraphUsers']);
+
+        // Public approvals routes
+        $builder->connect('/approvals/fresh/:id/:decision', ['controller' => 'Approvals', 'action' => 'fresh'])
+            ->setPass(['id', 'decision'])
+            ->setPatterns(['id' => '\\d+', 'decision' => 'approve|reject']);
+        $builder->connect('/approvals/final/:id/:decision', ['controller' => 'Approvals', 'action' => 'final'])
+            ->setPass(['id', 'decision'])
+            ->setPatterns(['id' => '\\d+', 'decision' => 'approve|reject']);
 
         /*
          * ...and connect the rest of 'Pages' controller's URLs.
@@ -95,6 +104,13 @@ return function (RouteBuilder $routes): void {
     $routes->prefix('Admin', function (RouteBuilder $builder): void {
         $builder->setRouteClass(DashedRoute::class);
         $builder->connect('/', ['controller' => 'Dashboard', 'action' => 'index']);
+        
+        // Admin auth routes redirect to main auth controller
+        $builder->connect('/login', ['controller' => 'Auth', 'action' => 'login', 'prefix' => false]);
+        $builder->connect('/logout', ['controller' => 'Auth', 'action' => 'logout', 'prefix' => false]);
+        $builder->connect('/auth/logout', ['controller' => 'Auth', 'action' => 'logout', 'prefix' => false]);
+        $builder->connect('/auth/get-graph-users', ['controller' => 'Auth', 'action' => 'getGraphUsers', 'prefix' => false]);
+        
         $builder->fallbacks();
     });
 

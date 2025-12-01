@@ -45,6 +45,7 @@ class SgcAccountsTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->hasMany('FreshInvoices', [
             'foreignKey' => 'sgc_account_id',

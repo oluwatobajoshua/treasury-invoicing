@@ -3,8 +3,11 @@
  * Treasury Invoicing System - Modern Layout
  * Professional UI/UX with responsive design
  */
+use Cake\Core\Configure;
 
-$cakeDescription = 'Treasury Invoicing System';
+$appName = Configure::read('AppSettings.app_name', 'Treasury Invoicing System');
+$companyName = Configure::read('AppSettings.company_name', '');
+$cakeDescription = $appName;
 $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSession()->read('Auth.User');
 ?>
 <!DOCTYPE html>
@@ -177,6 +180,88 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
             background: rgba(255, 255, 255, 0.2);
             color: white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Dropdown Menu Styles */
+        .dropdown {
+            position: relative;
+        }
+        
+        .dropdown-toggle {
+            cursor: pointer;
+        }
+        
+        .dropdown-icon {
+            font-size: 0.7rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .dropdown.active .dropdown-icon {
+            transform: rotate(180deg);
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            margin-top: 0.5rem;
+            padding: 0.5rem 0;
+            list-style: none;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            color: var(--dark);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
+            color: var(--primary);
+        }
+        
+        .dropdown-header {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray-500);
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .dropdown-divider {
+            height: 0;
+            margin: 0.5rem 0;
+            overflow: hidden;
+            border-top: 1px solid var(--gray-200);
         }
         
         .user-menu {
@@ -594,20 +679,113 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
                             <span>Contracts</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="<?= $this->Url->build(['controller' => 'FreshInvoices', 'action' => 'index']) ?>" 
-                           class="nav-link <?= ($this->request->getParam('controller') === 'FreshInvoices') ? 'active' : '' ?>">
-                            <i class="fas fa-file-alt"></i>
-                            <span>Fresh Invoices</span>
+                    
+                    <!-- Invoices Dropdown - All invoice types -->
+                    <li class="dropdown">
+                        <a href="javascript:void(0)" class="nav-link dropdown-toggle <?= in_array($this->request->getParam('controller'), ['FreshInvoices', 'FinalInvoices', 'SalesInvoices', 'SustainabilityInvoices']) ? 'active' : '' ?>" onclick="toggleDropdown('invoicesMenu')">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Invoices</span>
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
                         </a>
+                        <ul class="dropdown-menu" id="invoicesMenu">
+                            <li class="dropdown-header">Shipment Invoices</li>
+                            <li>
+                                <a href="<?= $this->Url->build(['controller' => 'FreshInvoices', 'action' => 'index']) ?>" class="dropdown-item">
+                            <i class="fas fa-file-alt"></i> Fresh Invoices
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['controller' => 'FinalInvoices', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-file-invoice"></i> Final Invoices
+                                </a>
+                            </li>
+                            <li class="dropdown-divider"></li>
+                            <li class="dropdown-header">Other Invoice Types</li>
+                            <li>
+                                <a href="<?= $this->Url->build(['controller' => 'SalesInvoices', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-cash-register"></i> Sales Invoices
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['controller' => 'SustainabilityInvoices', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-leaf"></i> Sustainability Invoices
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li>
-                        <a href="<?= $this->Url->build(['controller' => 'FinalInvoices', 'action' => 'index']) ?>" 
-                           class="nav-link <?= ($this->request->getParam('controller') === 'FinalInvoices') ? 'active' : '' ?>">
-                            <i class="fas fa-file-invoice"></i>
-                            <span>Final Invoices</span>
+                    
+                    <?php if (isset($authUser['role']) && $authUser['role'] === 'admin'): ?>
+                    <!-- Combined Admin Dropdown -->
+                    <li class="dropdown">
+                        <a href="javascript:void(0)" class="nav-link dropdown-toggle" onclick="toggleDropdown('adminMenu')">
+                            <i class="fas fa-cog"></i>
+                            <span>Admin</span>
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
                         </a>
+                        <ul class="dropdown-menu" id="adminMenu">
+                            <li class="dropdown-header">Master Data</li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'Clients', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-building"></i> Clients
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'Products', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-box"></i> Products
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'Vessels', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-ship"></i> Vessels
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'SgcAccounts', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-wallet"></i> SGC Accounts
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['controller' => 'Banks', 'action' => 'index', 'prefix' => false]) ?>" class="dropdown-item">
+                                    <i class="fas fa-university"></i> Bank Accounts
+                                </a>
+                            </li>
+                            <li class="dropdown-divider"></li>
+                            <li class="dropdown-header">System Settings</li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'Users', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-users"></i> Users
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'ApproverSettings', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-user-check"></i> Approver Settings
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'AppSettings', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-cogs"></i> App Settings
+                                </a>
+                            </li>
+                            <li class="dropdown-divider"></li>
+                            <li class="dropdown-header">Database Management</li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'DatabaseBackup', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-database"></i> Backup & Restore
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'AuditLogs', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-history"></i> Audit Logs
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?= $this->Url->build(['prefix' => 'Admin', 'controller' => 'DataExport', 'action' => 'index']) ?>" class="dropdown-item">
+                                    <i class="fas fa-file-export"></i> Data Export
+                                </a>
+                            </li>
+                        </ul>
                     </li>
+                    <?php endif; ?>
                 </ul>
                 
                 <div class="user-menu">
@@ -646,13 +824,16 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <p><strong>Treasury Invoicing System</strong> &copy; <?= date('Y') ?>. All rights reserved.</p>
+            <p><strong><?= h($appName) ?></strong> &copy; <?= date('Y') ?>. All rights reserved.</p>
             <div class="footer-links">
                 <a href="#" class="footer-link">Privacy Policy</a>
                 <a href="#" class="footer-link">Terms of Service</a>
                 <a href="#" class="footer-link">Support</a>
             </div>
             <p style="margin-top: 1rem; font-size: 0.85rem; opacity: 0.8;">
+                <?php if ($companyName): ?>
+                    <?= h($companyName) ?> &nbsp;|&nbsp; 
+                <?php endif; ?>
                 Powered by CakePHP &nbsp;|&nbsp; Built with <i class="fas fa-heart" style="color: #ef4444;"></i> for efficient invoice management
             </p>
         </div>
@@ -672,13 +853,49 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
             navLinks.classList.toggle('active');
         }
         
+        // Dropdown menu toggle
+        function toggleDropdown(menuId) {
+            const menu = document.getElementById(menuId);
+            const allMenus = document.querySelectorAll('.dropdown-menu');
+            const allDropdowns = document.querySelectorAll('.dropdown');
+            
+            // Close all other dropdowns
+            allMenus.forEach(m => {
+                if (m.id !== menuId) {
+                    m.classList.remove('show');
+                }
+            });
+            allDropdowns.forEach(d => {
+                if (!d.querySelector('#' + menuId)) {
+                    d.classList.remove('active');
+                }
+            });
+            
+            // Toggle current dropdown
+            menu.classList.toggle('show');
+            menu.closest('.dropdown').classList.toggle('active');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+                document.querySelectorAll('.dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('active');
+                });
+            }
+        });
+        
         // SweetAlert2 Toast Configuration
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 4000,
+            timer: 5000,
             timerProgressBar: true,
+            width: 'auto',
             didOpen: (toast) => {
                 toast.addEventListener('mouseenter', Swal.stopTimer);
                 toast.addEventListener('mouseleave', Swal.resumeTimer);
@@ -688,40 +905,89 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
             }
         });
         
+        // Full dialog for long messages (not toast)
+        const FullDialog = Swal.mixin({
+            toast: false,
+            position: 'center',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#0c5343',
+            width: '600px',
+            customClass: {
+                confirmButton: 'btn btn-primary'
+            }
+        });
+        
         // Success notification
         function showSuccess(message, title = 'Success!') {
-            Toast.fire({
-                icon: 'success',
-                title: title,
-                text: message
-            });
+            // Use full dialog if message is long or contains HTML
+            if (message.length > 100 || message.includes('<br>') || message.includes('<')) {
+                FullDialog.fire({
+                    icon: 'success',
+                    title: title,
+                    html: message
+                });
+            } else {
+                Toast.fire({
+                    icon: 'success',
+                    title: title,
+                    text: message
+                });
+            }
         }
         
         // Error notification
         function showError(message, title = 'Error!') {
-            Toast.fire({
-                icon: 'error',
-                title: title,
-                text: message
-            });
+            // Use full dialog if message is long or contains HTML
+            if (message.length > 100 || message.includes('<br>') || message.includes('<')) {
+                FullDialog.fire({
+                    icon: 'error',
+                    title: title,
+                    html: message
+                });
+            } else {
+                Toast.fire({
+                    icon: 'error',
+                    title: title,
+                    text: message
+                });
+            }
         }
         
         // Warning notification
         function showWarning(message, title = 'Warning!') {
-            Toast.fire({
-                icon: 'warning',
-                title: title,
-                text: message
-            });
+            // Use full dialog if message is long or contains HTML
+            if (message.length > 100 || message.includes('<br>') || message.includes('<')) {
+                FullDialog.fire({
+                    icon: 'warning',
+                    title: title,
+                    html: message
+                });
+            } else {
+                Toast.fire({
+                    icon: 'warning',
+                    title: title,
+                    text: message
+                });
+            }
         }
         
         // Info notification
         function showInfo(message, title = 'Info') {
-            Toast.fire({
-                icon: 'info',
-                title: title,
-                text: message
-            });
+            // Use full dialog if message is long or contains HTML
+            if (message.length > 100 || message.includes('<br>') || message.includes('<')) {
+                FullDialog.fire({
+                    icon: 'info',
+                    title: title,
+                    html: message
+                });
+            } else {
+                Toast.fire({
+                    icon: 'info',
+                    title: title,
+                    text: message
+                });
+            }
         }
         
         // Confirmation dialog
@@ -798,6 +1064,95 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
             });
         }
         
+        // SweetAlert confirmation for POST links (with optional required comment)
+        document.addEventListener('click', function(e) {
+            const el = e.target.closest('.js-swal-post');
+            if (!el) return;
+            // If already confirmed (and not requiring comment), allow default behavior
+            if (el.dataset.confirmed === '1') return;
+            e.preventDefault();
+
+            const title = el.getAttribute('data-swal-title') || 'Are you sure?';
+            const text = el.getAttribute('data-swal-text') || '';
+            const requireComment = el.getAttribute('data-require-comment') === '1';
+            const commentName = el.getAttribute('data-comment-name') || 'treasurer_comments';
+            const commentTitle = el.getAttribute('data-comment-title') || 'Provide a comment';
+            const commentPlaceholder = el.getAttribute('data-comment-placeholder') || 'Enter reason...';
+
+            if (!requireComment) {
+                Swal.fire({
+                    title: title,
+                    html: text,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0c5343',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, proceed',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Mark confirmed and trigger click again to allow Cake's postLink to submit
+                        el.dataset.confirmed = '1';
+                        el.click();
+                    }
+                });
+                return;
+            }
+
+            // Prompt for a required comment
+            Swal.fire({
+                title: title,
+                html: text + '<div style="text-align:left;margin-top:10px"><label style="font-weight:600;display:block;margin-bottom:6px">' + commentTitle + '</label><textarea id="swal-comment" class="swal2-textarea" placeholder="' + commentPlaceholder + '" style="height:120px"></textarea></div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Submit Rejection',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                preConfirm: () => {
+                    const val = (document.getElementById('swal-comment')?.value || '').trim();
+                    if (!val) {
+                        Swal.showValidationMessage('A comment is required to reject.');
+                        return false;
+                    }
+                    return val;
+                }
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                const commentVal = result.value;
+
+                // Build and submit a POST form manually so we can include the comment and CSRF token
+                const actionUrl = el.getAttribute('href');
+                if (!actionUrl) return;
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = actionUrl;
+
+                // CSRF token
+                const csrfTokenMeta = document.querySelector('meta[name="csrfToken"]');
+                if (csrfTokenMeta) {
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_csrfToken';
+                    tokenInput.value = csrfTokenMeta.getAttribute('content');
+                    form.appendChild(tokenInput);
+                }
+
+                // Comment field
+                const commentInput = document.createElement('input');
+                commentInput.type = 'hidden';
+                commentInput.name = commentName;
+                commentInput.value = commentVal;
+                form.appendChild(commentInput);
+
+                // Insert and submit
+                document.body.appendChild(form);
+                form.submit();
+            });
+        });
+
         // Display flash messages from PHP
         <?php
         $session = $this->request->getSession();
@@ -818,6 +1173,67 @@ $authUser = $this->request->getAttribute('authUser') ?? $this->request->getSessi
             }
         }
         ?>
+        
+        // Session timeout warning
+        <?php if ($authUser): ?>
+        let sessionWarningShown = false;
+        let sessionCheckInterval;
+        
+        function checkSessionTimeout() {
+            const tokenExpiry = <?= $session->read('Auth.TokenExpiry') ?? 'null' ?>;
+            const lastActivity = <?= $session->read('Auth.LastActivity') ?? 'null' ?>;
+            
+            if (!tokenExpiry || !lastActivity) {
+                return;
+            }
+            
+            const currentTime = Math.floor(Date.now() / 1000);
+            const timeUntilExpiry = tokenExpiry - currentTime;
+            const inactiveTime = currentTime - lastActivity;
+            
+            // Show warning 5 minutes before token expiry
+            if (timeUntilExpiry > 0 && timeUntilExpiry <= 300 && !sessionWarningShown) {
+                sessionWarningShown = true;
+                Swal.fire({
+                    title: 'Session Expiring Soon',
+                    text: 'Your session will expire in ' + Math.floor(timeUntilExpiry / 60) + ' minutes due to token expiration. Would you like to refresh it?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0c5343',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: '<i class="fas fa-refresh"></i> Refresh Session',
+                    cancelButtonText: 'Continue',
+                    timer: 30000,
+                    timerProgressBar: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Redirect to login to get new token
+                        window.location.href = '<?= $this->Url->build(['controller' => 'Auth', 'action' => 'login']) ?>';
+                    }
+                });
+            }
+            
+            // Session expired
+            if (timeUntilExpiry <= 0) {
+                clearInterval(sessionCheckInterval);
+                Swal.fire({
+                    title: 'Session Expired',
+                    text: 'Your session has expired. Please login again.',
+                    icon: 'error',
+                    confirmButtonColor: '#0c5343',
+                    confirmButtonText: 'Login Again',
+                    allowOutsideClick: false
+                }).then(() => {
+                    window.location.href = '<?= $this->Url->build(['controller' => 'Auth', 'action' => 'login']) ?>';
+                });
+            }
+        }
+        
+        // Check every 30 seconds
+        sessionCheckInterval = setInterval(checkSessionTimeout, 30000);
+        // Check immediately on load
+        checkSessionTimeout();
+        <?php endif; ?>
     </script>
     
     <?= $this->fetch('script') ?>

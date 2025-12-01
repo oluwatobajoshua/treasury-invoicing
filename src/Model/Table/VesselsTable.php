@@ -44,6 +44,7 @@ class VesselsTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->hasMany('FreshInvoices', [
             'foreignKey' => 'vessel_id',

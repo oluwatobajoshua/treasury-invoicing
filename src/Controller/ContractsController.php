@@ -18,12 +18,19 @@ class ContractsController extends AppController
      */
     public function index()
     {
-        $this->paginate = [
+        // Get all contracts without pagination (DataTables handles pagination client-side)
+        $contracts = $this->Contracts->find('all', [
             'contain' => ['Clients', 'Products'],
-        ];
-        $contracts = $this->paginate($this->Contracts);
+            'order' => ['Contracts.created' => 'DESC']
+        ])->toArray();
 
-        $this->set(compact('contracts'));
+        // Get statistics
+        $total = $this->Contracts->find()->count();
+        $active = $this->Contracts->find()->where(['status' => 'active'])->count();
+        $completed = $this->Contracts->find()->where(['status' => 'completed'])->count();
+        $cancelled = $this->Contracts->find()->where(['status' => 'cancelled'])->count();
+
+        $this->set(compact('contracts', 'total', 'active', 'completed', 'cancelled'));
     }
 
     /**

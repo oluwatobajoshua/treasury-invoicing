@@ -447,7 +447,21 @@ foreach ($freshInvoices as $invoice) {
         <h1 class="page-title">Fresh Invoices</h1>
         <p class="page-subtitle">Manage and track all fresh invoices</p>
     </div>
-    <div>
+    <div style="display:flex;gap:1rem;align-items:center;">
+        <?php
+        $isAdmin = $authUser && isset($authUser['role']) && strtolower($authUser['role']) === 'admin';
+        if ($isAdmin):
+        ?>
+            <?= $this->Html->link(
+                '<i class="fas fa-cog"></i> Admin Dashboard',
+                ['prefix' => 'Admin', 'controller' => 'Dashboard', 'action' => 'index'],
+                [
+                    'class' => 'btn btn-lg',
+                    'escape' => false,
+                    'style' => 'background:linear-gradient(135deg,#ff5722 0%,#f4511e 100%);color:white;border:none;'
+                ]
+            ) ?>
+        <?php endif; ?>
         <?= $this->Html->link(
             '<i class="fas fa-plus-circle"></i> Create Invoice',
             ['action' => 'add'],
@@ -532,11 +546,11 @@ foreach ($freshInvoices as $invoice) {
             <label>Client</label>
             <select id="clientFilter" class="filter-input">
                 <option value="">All Clients</option>
-                <?php foreach ($freshInvoices as $invoice): ?>
-                    <?php if ($invoice->has('client')): ?>
-                        <option value="<?= h($invoice->client->name) ?>"><?= h($invoice->client->name) ?></option>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+                <?php if (!empty($clients)) : ?>
+                    <?php foreach ($clients as $clientName): ?>
+                        <option value="<?= h($clientName) ?>"><?= h($clientName) ?></option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </select>
         </div>
         <div class="filter-group">
@@ -566,14 +580,14 @@ foreach ($freshInvoices as $invoice) {
         <table class="modern-table" id="invoicesTable">
             <thead>
                 <tr>
-                    <th><?= $this->Paginator->sort('invoice_number', 'Invoice #') ?></th>
-                    <th><?= $this->Paginator->sort('client_id', 'Client') ?></th>
-                    <th><?= $this->Paginator->sort('product_id', 'Product') ?></th>
-                    <th><?= $this->Paginator->sort('bl_number', 'BL Number') ?></th>
-                    <th><?= $this->Paginator->sort('quantity', 'Quantity') ?></th>
-                    <th><?= $this->Paginator->sort('total_value', 'Total Value') ?></th>
-                    <th><?= $this->Paginator->sort('status', 'Status') ?></th>
-                    <th><?= $this->Paginator->sort('invoice_date', 'Date') ?></th>
+                    <th>Invoice #</th>
+                    <th>Client</th>
+                    <th>Product</th>
+                    <th>BL Number</th>
+                    <th>Quantity</th>
+                    <th>Total Value</th>
+                    <th>Status</th>
+                    <th>Date</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -636,8 +650,9 @@ foreach ($freshInvoices as $invoice) {
                                     '<i class="fas fa-trash"></i>',
                                     ['action' => 'delete', $freshInvoice->id],
                                     [
-                                        'confirm' => 'Are you sure you want to delete invoice ' . $freshInvoice->invoice_number . '?',
-                                        'class' => 'btn btn-sm btn-danger btn-icon',
+                                        'class' => 'btn btn-sm btn-danger btn-icon js-swal-post',
+                                        'data-swal-title' => 'Delete Invoice?',
+                                        'data-swal-text' => 'Are you sure you want to delete invoice ' . h($freshInvoice->invoice_number) . '? This action cannot be undone.',
                                         'escape' => false,
                                         'title' => 'Delete'
                                     ]
@@ -649,22 +664,6 @@ foreach ($freshInvoices as $invoice) {
                 <?php endforeach; ?>
             </tbody>
         </table>
-    </div>
-    
-    <!-- Pagination -->
-    <div class="pagination-wrapper">
-        <div>
-            <p style="margin: 0; color: var(--gray-600); font-size: 0.9rem;">
-                <?= $this->Paginator->counter('Showing {{current}} of {{count}} invoices') ?>
-            </p>
-        </div>
-        <ul class="pagination">
-            <?= $this->Paginator->first('<i class="fas fa-angle-double-left"></i>', ['escape' => false]) ?>
-            <?= $this->Paginator->prev('<i class="fas fa-angle-left"></i>', ['escape' => false]) ?>
-            <?= $this->Paginator->numbers() ?>
-            <?= $this->Paginator->next('<i class="fas fa-angle-right"></i>', ['escape' => false]) ?>
-            <?= $this->Paginator->last('<i class="fas fa-angle-double-right"></i>', ['escape' => false]) ?>
-        </ul>
     </div>
     <?php else: ?>
     <!-- Empty State -->
@@ -683,31 +682,133 @@ foreach ($freshInvoices as $invoice) {
     <?php endif; ?>
 </div>
 
-<script>
-// Simple client-side filtering
-document.getElementById('searchInput')?.addEventListener('input', filterTable);
-document.getElementById('statusFilter')?.addEventListener('change', filterTable);
-document.getElementById('clientFilter')?.addEventListener('change', filterTable);
-document.getElementById('dateFilter')?.addEventListener('change', filterTable);
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 
-function filterTable() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-    const clientFilter = document.getElementById('clientFilter').value.toLowerCase();
-    const dateFilter = document.getElementById('dateFilter').value;
-    
-    const table = document.getElementById('invoicesTable');
-    const rows = table?.getElementsByTagName('tbody')[0]?.getElementsByTagName('tr');
-    
-    if (!rows) return;
-    
-    for (let row of rows) {
-        const text = row.textContent.toLowerCase();
-        const matchSearch = text.includes(searchTerm);
-        const matchStatus = !statusFilter || text.includes(statusFilter);
-        const matchClient = !clientFilter || text.includes(clientFilter);
-        
-        row.style.display = (matchSearch && matchStatus && matchClient) ? '' : 'none';
-    }
+<style>
+/* DataTables Custom Styling */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
 }
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(12, 83, 67, 0.1);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: linear-gradient(135deg, var(--primary) 0%, #094d3d 100%) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #f3f4f6 !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+
+.dt-buttons {
+    margin-bottom: 1rem;
+}
+
+.dt-button {
+    background: white !important;
+    border: 2px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    transition: all 0.3s ease !important;
+    margin-right: 0.5rem !important;
+}
+
+.dt-button:hover {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(12, 83, 67, 0.3) !important;
+}
+
+div.dataTables_wrapper div.dataTables_info {
+    color: #6b7280;
+    font-size: 0.875rem;
+    padding-top: 1rem;
+}
+</style>
+
+<!-- DataTables JS Libraries -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#invoicesTable').DataTable({
+        pageLength: 25,
+        responsive: true,
+        dom: '<"row"<"col-sm-12 col-md-6"B><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                className: 'btn-success',
+                exportOptions: {
+                    columns: ':visible:not(:last-child)'
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf"></i> PDF',
+                className: 'btn-danger',
+                exportOptions: {
+                    columns: ':visible:not(:last-child)'
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print"></i> Print',
+                exportOptions: {
+                    columns: ':visible:not(:last-child)'
+                }
+            },
+            {
+                extend: 'colvis',
+                text: '<i class="fas fa-columns"></i> Columns'
+            }
+        ],
+        order: [[7, 'desc']], // Sort by Date column (index 7) descending
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search invoices...",
+            lengthMenu: "Show _MENU_ invoices",
+            info: "Showing _START_ to _END_ of _TOTAL_ invoices",
+            infoEmpty: "No invoices found",
+            infoFiltered: "(filtered from _MAX_ total invoices)",
+            zeroRecords: "No matching invoices found"
+        }
+    });
+});
 </script>

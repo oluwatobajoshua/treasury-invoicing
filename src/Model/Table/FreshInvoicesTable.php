@@ -51,6 +51,7 @@ class FreshInvoicesTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->belongsTo('Clients', [
             'foreignKey' => 'client_id',
@@ -131,6 +132,7 @@ class FreshInvoicesTable extends Table
 
         $validator
             ->scalar('notes')
+            ->maxLength('notes', 500, 'Purpose cannot exceed 500 characters')
             ->allowEmptyString('notes');
 
         $validator

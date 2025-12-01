@@ -167,14 +167,14 @@ $avgUtilization = $totalContracts > 0 ? $totalUtilization / $totalContracts : 0;
         <table class="modern-table" id="contractsTable">
             <thead>
                 <tr>
-                    <th><?= $this->Paginator->sort('contract_id', 'Contract ID') ?></th>
-                    <th><?= $this->Paginator->sort('client_id', 'Client') ?></th>
-                    <th><?= $this->Paginator->sort('product_id', 'Product') ?></th>
-                    <th><?= $this->Paginator->sort('quantity', 'Quantity') ?></th>
+                    <th>Contract ID</th>
+                    <th>Client</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
                     <th>Utilization</th>
-                    <th><?= $this->Paginator->sort('total_value', 'Total Value') ?></th>
+                    <th>Total Value</th>
                     <th>Period</th>
-                    <th><?= $this->Paginator->sort('status', 'Status') ?></th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -279,20 +279,11 @@ $avgUtilization = $totalContracts > 0 ? $totalUtilization / $totalContracts : 0;
         </table>
     </div>
     
-    <!-- Pagination -->
-    <div style="padding:1.5rem;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;background:var(--gray-50)">
-        <div>
-            <p style="margin:0;color:var(--gray-600);font-size:.9rem">
-                <?= $this->Paginator->counter('Showing {{current}} of {{count}} contracts') ?>
-            </p>
-        </div>
-        <ul class="pagination" style="display:flex;gap:.5rem;list-style:none;margin:0;padding:0">
-            <?= $this->Paginator->first('<i class="fas fa-angle-double-left"></i>', ['escape' => false]) ?>
-            <?= $this->Paginator->prev('<i class="fas fa-angle-left"></i>', ['escape' => false]) ?>
-            <?= $this->Paginator->numbers() ?>
-            <?= $this->Paginator->next('<i class="fas fa-angle-right"></i>', ['escape' => false]) ?>
-            <?= $this->Paginator->last('<i class="fas fa-angle-double-right"></i>', ['escape' => false]) ?>
-        </ul>
+    <!-- Simple footer -->
+    <div style="padding:1.5rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;align-items:center;background:var(--gray-50)">
+        <p style="margin:0;color:var(--gray-600);font-size:.9rem">
+            Showing <?= count($contracts) ?> contract(s)
+        </p>
     </div>
 </div>
 

@@ -45,6 +45,7 @@ class ClientsTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->hasMany('Contracts', [
             'foreignKey' => 'client_id',

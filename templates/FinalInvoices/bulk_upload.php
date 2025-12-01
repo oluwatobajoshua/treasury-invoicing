@@ -51,63 +51,89 @@ $this->assign('title', 'Bulk Upload Final Invoices');
         </div>
 
         <div class="upload-body">
+            <div class="instructions" style="background:#d4edda;border-left-color:#28a745">
+                <h3 style="color:#155724">✨ Ready-to-Use Template with Real Data</h3>
+                <p style="margin:0 0 1rem;color:#155724;line-height:1.6">
+                    Click "Download Full Template" to get a CSV file pre-filled with <strong>all Fresh Invoices awaiting Final Invoices</strong>. 
+                    The table below shows the first 10 invoices as a preview of what you'll get in the template.
+                </p>
+                <div style="background:#fff;padding:1rem;border-radius:6px;border:1px solid #c3e6cb">
+                    <strong style="color:#155724">Quick Steps:</strong>
+                    <ol style="margin:.5rem 0 0 0;padding-left:1.5rem;color:#155724">
+                        <li>Download the template (contains real invoices from your system)</li>
+                        <li>Update "Landed Quantity" column with actual landed amounts</li>
+                        <li>Add notes if needed (variance calculations will be automatic)</li>
+                        <li>Upload the CSV - you'll see a validation preview before import</li>
+                        <li>Confirm import after reviewing the preview</li>
+                    </ol>
+                </div>
+            </div>
+
             <div class="warning">
-                <strong>⚠️ Important:</strong> Final invoices must reference existing Fresh Invoices. The <strong>Original Invoice Number</strong> column must match an existing Fresh Invoice number in the system.
+                <strong>⚠️ Validation:</strong> All Original Invoice Numbers will be validated before import. You'll see a preview screen showing matched Fresh Invoices and calculated variances before final confirmation.
             </div>
 
-            <div class="instructions">
-                <h3>📋 Instructions</h3>
-                <ul>
-                    <li><strong>Step 1:</strong> Ensure all referenced Fresh Invoices are already created in the system</li>
-                    <li><strong>Step 2:</strong> Download the sample CSV template below</li>
-                    <li><strong>Step 3:</strong> Fill in your final invoice data with landed quantities</li>
-                    <li><strong>Step 4:</strong> Save as CSV file and upload below</li>
-                    <li><strong>Note:</strong> System will auto-calculate variance (Landed - Original quantity)</li>
-                    <li><strong>Required columns:</strong> Original Invoice Number, Landed Quantity, BL Number</li>
-                </ul>
-            </div>
-
-            <!-- Sample Template Table -->
+            <!-- Pending Fresh Invoices Table -->
             <div style="margin-bottom:2rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-                    <h3 style="margin:0;font-size:1rem;font-weight:700;color:#333">Sample Template Format</h3>
-                    <?= $this->Html->link('⬇️ Download CSV Template', ['action' => 'downloadTemplate'], ['class' => 'btn btn-secondary']) ?>
+                    <div>
+                        <h3 style="margin:0;font-size:1rem;font-weight:700;color:#333">
+                            📋 Fresh Invoices Awaiting Final Invoices
+                            <?php if (isset($pendingInvoices) && $pendingInvoices->count() > 0): ?>
+                                <span style="background:#28a745;color:#fff;padding:.25rem .75rem;border-radius:20px;font-size:.85rem;margin-left:.5rem">
+                                    <?= $pendingInvoices->count() ?> Pending
+                                </span>
+                            <?php endif; ?>
+                        </h3>
+                        <p style="margin:.25rem 0 0 0;color:#666;font-size:.85rem">
+                            These are actual Fresh Invoices from your system that need Final Invoices. Download the template to get the complete list.
+                        </p>
+                    </div>
+                    <?= $this->Html->link('⬇️ Download Full Template', ['action' => 'downloadTemplate'], ['class' => 'btn btn-secondary', 'style' => 'background:#28a745;color:#fff;border-color:#28a745']) ?>
                 </div>
                 <div style="overflow-x:auto">
-                    <table class="sample-table">
-                        <thead>
-                            <tr>
-                                <th>Original Invoice Number</th>
-                                <th>Landed Quantity</th>
-                                <th>Vessel Name</th>
-                                <th>BL Number</th>
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>0155</td>
-                                <td>260.748</td>
-                                <td>Vessel: GREAT TEMA - GTT0525</td>
-                                <td>LOS37115</td>
-                                <td>1.682 MT variance</td>
-                            </tr>
-                            <tr>
-                                <td>0156</td>
-                                <td>259.408</td>
-                                <td>Vessel: GREAT TEMA - GTT0525</td>
-                                <td>LOS37113</td>
-                                <td>0.912 MT variance</td>
-                            </tr>
-                            <tr>
-                                <td>0157</td>
-                                <td>248.974</td>
-                                <td>Vessel: GREAT TEMA - GTT0525</td>
-                                <td>LOS37114</td>
-                                <td>1.486 MT variance</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <?php if (isset($pendingInvoices) && $pendingInvoices->count() > 0): ?>
+                        <table class="sample-table">
+                            <thead>
+                                <tr>
+                                    <th>Original Invoice Number</th>
+                                    <th>Current Quantity (MT)</th>
+                                    <th>Vessel Name</th>
+                                    <th>BL Number</th>
+                                    <th>Action Needed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($pendingInvoices as $invoice): ?>
+                                    <tr>
+                                        <td><strong><?= h($invoice->invoice_number) ?></strong></td>
+                                        <td><?= h(number_format($invoice->quantity, 3)) ?> MT</td>
+                                        <td>
+                                            <?php 
+                                                $vesselName = 'Vessel: ' . ($invoice->vessel->name ?? 'Unknown');
+                                                echo h($vesselName);
+                                            ?>
+                                        </td>
+                                        <td><?= h($invoice->bl_number ?? 'N/A') ?></td>
+                                        <td style="color:#ff5722;font-weight:600">
+                                            <i class="fas fa-clock"></i> Update landed quantity
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <p style="text-align:center;margin-top:1rem;color:#666;font-size:.85rem">
+                            <i class="fas fa-info-circle"></i> Showing first 10 invoices. Download template for complete list (up to 50 most recent).
+                        </p>
+                    <?php else: ?>
+                        <div style="background:#d4edda;border:2px solid #28a745;border-radius:8px;padding:2rem;text-align:center">
+                            <div style="font-size:3rem;margin-bottom:1rem">✅</div>
+                            <h3 style="color:#155724;margin:0 0 .5rem">All Caught Up!</h3>
+                            <p style="color:#155724;margin:0">
+                                All Fresh Invoices already have Final Invoices. Great work!
+                            </p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 

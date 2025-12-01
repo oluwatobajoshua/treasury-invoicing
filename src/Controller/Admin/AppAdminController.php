@@ -22,4 +22,21 @@ class AppAdminController extends AppController
             return $this->redirect(['prefix' => false, 'controller' => 'Pages', 'action' => 'display', 'home']);
         }
     }
+
+    /**
+     * Admin area authorization - only admin role allowed.
+     * Overrides parent isAuthorized() with admin-only enforcement.
+     *
+     * @param array|null $user User data from session
+     * @return bool True if user is admin, false otherwise
+     */
+    public function isAuthorized($user): bool
+    {
+        // Admin routes require admin role
+        if (!$user || !isset($user['role'])) {
+            return false;
+        }
+
+        return strtolower((string)$user['role']) === 'admin';
+    }
 }

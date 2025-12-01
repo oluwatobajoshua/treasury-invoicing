@@ -20,13 +20,25 @@ class FreshInvoicesController extends AppController
      */
     public function index()
     {
-        $this->paginate = [
+        // Get all invoices without pagination (DataTables handles pagination client-side)
+        $freshInvoices = $this->FreshInvoices->find('all', [
             'contain' => ['Clients', 'Products', 'Contracts', 'Vessels', 'SgcAccounts'],
             'order' => ['FreshInvoices.created' => 'DESC']
-        ];
-        $freshInvoices = $this->paginate($this->FreshInvoices);
+        ])->toArray();
 
-        $this->set(compact('freshInvoices'));
+        // Get statistics
+        $totalInvoices = $this->FreshInvoices->find()->count();
+        $draftInvoices = $this->FreshInvoices->find()->where(['status' => 'draft'])->count();
+        $approvedInvoices = $this->FreshInvoices->find()->where(['status' => 'approved'])->count();
+        $sentInvoices = $this->FreshInvoices->find()->where(['status' => 'sent_to_export'])->count();
+
+        // Get unique clients for filter
+        $clients = $this->FreshInvoices->Clients->find('list')->order(['name' => 'ASC'])->toArray();
+
+        // Get current user for admin check
+        $authUser = $this->request->getAttribute('identity');
+
+        $this->set(compact('freshInvoices', 'totalInvoices', 'draftInvoices', 'approvedInvoices', 'sentInvoices', 'clients', 'authUser'));
     }
 
     /**
@@ -157,6 +169,39 @@ class FreshInvoicesController extends AppController
     }
 
     /**
+     * Update Purpose method
+     * Allows updating the purpose/notes field for any invoice status
+     *
+     * @param string|null $id Fresh Invoice id.
+     * @return \Cake\Http\Response|null|void Redirects to view.
+     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
+     */
+    public function updatePurpose($id = null)
+    {
+        $this->request->allowMethod(['patch', 'post', 'put']);
+        $freshInvoice = $this->FreshInvoices->get($id, [
+            'contain' => [],
+        ]);
+        
+        if ($this->request->is(['patch', 'post', 'put'])) {
+            // Only allow updating the notes field
+            $freshInvoice = $this->FreshInvoices->patchEntity(
+                $freshInvoice,
+                $this->request->getData(),
+                ['fields' => ['notes']]
+            );
+            
+            if ($this->FreshInvoices->save($freshInvoice)) {
+                $this->Flash->success(__('Purpose has been updated successfully.'));
+                return $this->redirect(['action' => 'view', $id]);
+            }
+            $this->Flash->error(__('Unable to update purpose. Please try again.'));
+        }
+        
+        return $this->redirect(['action' => 'view', $id]);
+    }
+
+    /**
      * Delete method
      *
      * @param string|null $id Fresh Invoice id.
@@ -202,6 +247,10 @@ class FreshInvoicesController extends AppController
         
         $freshInvoice->status = 'pending_treasurer_approval';
         if ($this->FreshInvoices->save($freshInvoice)) {
+            // Notify approvers using settings
+            $accessToken = $this->request->getSession()->read('Auth.AccessToken');
+            $notifier = new \App\Service\ApprovalNotificationService($accessToken);
+            $notifier->notifyFresh((int)$freshInvoice->id, 'pending_approval', ['attachPdf' => true]);
             $this->Flash->success(__('The invoice has been submitted to the Treasurer for approval.'));
         } else {
             $this->Flash->error(__('Could not submit the invoice. Please, try again.'));
@@ -231,6 +280,10 @@ class FreshInvoicesController extends AppController
         }
         
         if ($this->FreshInvoices->save($freshInvoice)) {
+            // Notify next stage
+            $accessToken = $this->request->getSession()->read('Auth.AccessToken');
+            $notifier = new \App\Service\ApprovalNotificationService($accessToken);
+            $notifier->notifyFresh((int)$freshInvoice->id, 'approved', ['attachPdf' => true]);
             $this->Flash->success(__('The invoice has been approved.'));
         } else {
             $this->Flash->error(__('Could not approve the invoice. Please, try again.'));
@@ -251,12 +304,23 @@ class FreshInvoicesController extends AppController
         $this->request->allowMethod(['post', 'put']);
         $freshInvoice = $this->FreshInvoices->get($id);
         
+        // Require a comment when rejecting
+        $comment = trim((string)$this->request->getData('treasurer_comments'));
+        if ($comment === '') {
+            $this->Flash->error(__('Please provide a comment explaining the reason for rejection.'));
+            return $this->redirect(['action' => 'view', $id]);
+        }
+
         $freshInvoice->treasurer_approval_status = 'rejected';
         $freshInvoice->treasurer_approval_date = new \DateTime();
         $freshInvoice->status = 'rejected';
-        $freshInvoice->treasurer_comments = $this->request->getData('treasurer_comments');
+        $freshInvoice->treasurer_comments = $comment;
         
         if ($this->FreshInvoices->save($freshInvoice)) {
+            // Notify rejection recipients
+            $accessToken = $this->request->getSession()->read('Auth.AccessToken');
+            $notifier = new \App\Service\ApprovalNotificationService($accessToken);
+            $notifier->notifyFresh((int)$freshInvoice->id, 'rejected', ['attachPdf' => true]);
             $this->Flash->success(__('The invoice has been rejected.'));
         } else {
             $this->Flash->error(__('Could not reject the invoice. Please, try again.'));
@@ -339,6 +403,32 @@ class FreshInvoicesController extends AppController
         if ($this->request->is('post')) {
             $file = $this->request->getData('file');
             
+            // Check if this is a confirmation submit (after preview)
+            if ($this->request->getData('confirm_import')) {
+                $previewData = $this->request->getData('preview_data');
+                if (!empty($previewData)) {
+                    $data = json_decode($previewData, true);
+                    $results = $this->processBulkInvoices($data);
+                    
+                    if ($results['success'] > 0) {
+                        $this->Flash->success(__('{0} invoices created successfully.', $results['success']));
+                    }
+                    
+                    if ($results['errors'] > 0) {
+                        $this->Flash->error(__('{0} errors occurred. Check details below.', $results['errors']));
+                        
+                        if (!empty($results['messages'])) {
+                            foreach (array_slice($results['messages'], 0, 5) as $msg) {
+                                $this->Flash->error($msg);
+                            }
+                        }
+                    }
+                    
+                    return $this->redirect(['action' => 'index']);
+                }
+            }
+            
+            // Initial file upload - parse and show preview
             if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
                 $this->Flash->error(__('Please upload a valid CSV or Excel file.'));
                 return;
@@ -357,22 +447,17 @@ class FreshInvoicesController extends AppController
             
             // Parse the file
             $data = $this->parseUploadedFile($tmpPath, $extension);
-            unlink($tmpPath); // Clean up
+            unlink($tmpPath);
             
             if (empty($data)) {
                 $this->Flash->error(__('No valid data found in the uploaded file.'));
                 return;
             }
             
-            // Process and save invoices
-            $results = $this->processBulkInvoices($data);
-            
-            $this->Flash->success(__('{0} invoices created successfully. {1} errors.', 
-                $results['success'], 
-                $results['errors']
-            ));
-            
-            return $this->redirect(['action' => 'index']);
+            // Show preview page
+            $this->set('previewData', $data);
+            $this->render('bulk_upload_preview');
+            return;
         }
         
         // Load reference data for the form
@@ -432,13 +517,38 @@ class FreshInvoicesController extends AppController
     {
         $success = 0;
         $errors = 0;
+        $errorMessages = [];
         
-        foreach ($data as $row) {
+        foreach ($data as $index => $row) {
             try {
                 // Find or create related entities by name
                 $client = $this->findOrCreateClient($row['Client Name'] ?? '');
                 $product = $this->findOrCreateProduct($row['Product Name'] ?? '');
                 $vessel = $this->findOrCreateVessel($row['Vessel Name'] ?? '');
+                
+                // Find contract by reference or create a default one
+                $contractReference = trim($row['Contract ID'] ?? '');
+                $contract = null;
+                if (!empty($contractReference)) {
+                    $contract = $this->FreshInvoices->Contracts
+                        ->find()
+                        ->where(['contract_id' => $contractReference])
+                        ->first();
+                    
+                    // If contract not found, create a basic one
+                    if (!$contract && $client && $product) {
+                        $contract = $this->FreshInvoices->Contracts->newEntity([
+                            'contract_id' => $contractReference,
+                            'client_id' => $client->id,
+                            'product_id' => $product->id,
+                            'quantity' => (float)str_replace([',', ' '], '', $row['Quantity(MT)'] ?? 0),
+                            'unit_price' => (float)str_replace([',', ' '], '', $row['Unit Price'] ?? 0),
+                            'contract_date' => date('Y-m-d'),
+                            'status' => 'active'
+                        ]);
+                        $this->FreshInvoices->Contracts->save($contract);
+                    }
+                }
                 
                 // Find SGC Account by account_id
                 $sgcAccount = $this->FreshInvoices->SgcAccounts
@@ -452,9 +562,10 @@ class FreshInvoicesController extends AppController
                 $invoiceData = [
                     'client_id' => $client ? $client->id : null,
                     'product_id' => $product ? $product->id : null,
+                    'contract_id' => $contract ? $contract->id : null,
                     'vessel_id' => $vessel ? $vessel->id : null,
                     'vessel_name' => trim($row['Vessel Name'] ?? ''),
-                    'contract_reference' => trim($row['Contract ID'] ?? ''),
+                    'contract_reference' => $contractReference,
                     'bl_number' => trim($row['BL Number'] ?? ''),
                     'quantity' => (float)str_replace([',', ' '], '', $row['Quantity(MT)'] ?? 0),
                     'unit_price' => (float)str_replace([',', ' '], '', $row['Unit Price'] ?? 0),
@@ -477,13 +588,22 @@ class FreshInvoicesController extends AppController
                     $success++;
                 } else {
                     $errors++;
+                    $errorMessages[] = "Row " . ($index + 2) . ": " . json_encode($invoice->getErrors());
                 }
             } catch (\Exception $e) {
                 $errors++;
+                $errorMessages[] = "Row " . ($index + 2) . ": " . $e->getMessage();
             }
         }
         
-        return ['success' => $success, 'errors' => $errors];
+        // Log errors for debugging
+        if (!empty($errorMessages)) {
+            foreach ($errorMessages as $msg) {
+                $this->log($msg, 'error');
+            }
+        }
+        
+        return ['success' => $success, 'errors' => $errors, 'messages' => $errorMessages];
     }
 
     /**
@@ -541,5 +661,54 @@ class FreshInvoicesController extends AppController
         }
         
         return $vessel;
+    }
+
+    /**
+     * Download CSV template for bulk upload
+     *
+     * @return \Cake\Http\Response
+     */
+    public function downloadTemplate()
+    {
+        $this->autoRender = false;
+        
+        // CSV headers (removed INVOICE NUMBER - auto-generated)
+        $headers = [
+            'Client Name',
+            'Product Name',
+            'Contract ID',
+            'Vessel Name',
+            'BL Number',
+            'Quantity(MT)',
+            'Unit Price',
+            'Payment %',
+            'SGC Account ID',
+            'Notes',
+            'BULK/BAG'
+        ];
+        
+        // Sample data rows (without invoice number)
+        $sampleRows = [
+            ['SFI/CARGILL', 'Cocoa', '2025-SI 1B/QP 136484', 'Netherlands', 'LOS37115', '262.430', '6292.35', '98', '1100533', '', '16 BULK'],
+            ['Cargill', 'Cocoa', 'QP-136790.01/6B', 'Netherlands', 'LOS37783', '262.470', '5717.50', '98', '1100534', '', '16 BULK'],
+        ];
+        
+        // Create CSV content
+        $csv = fopen('php://temp', 'r+');
+        fputcsv($csv, $headers);
+        foreach ($sampleRows as $row) {
+            fputcsv($csv, $row);
+        }
+        rewind($csv);
+        $output = stream_get_contents($csv);
+        fclose($csv);
+        
+        // Set response
+        $this->response = $this->response
+            ->withType('text/csv')
+            ->withDownload('fresh_invoices_template.csv')
+            ->withStringBody($output);
+        
+        return $this->response;
     }
 }

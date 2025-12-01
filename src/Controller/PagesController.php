@@ -55,7 +55,7 @@ class PagesController extends AppController
             $user = $session->read('Auth.User');
             \Cake\Log\Log::debug('[Pages] Home accessed. loggedIn=' . ($user ? 'yes' : 'no'));
             if ($user) {
-                return $this->redirect(['controller' => 'TravelRequests', 'action' => 'index']);
+                return $this->redirect(['controller' => 'FreshInvoices', 'action' => 'index']);
             }
         }
         

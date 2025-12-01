@@ -20,11 +20,27 @@ class FinalInvoicesController extends AppController
      */
     public function index()
     {
+        // Server-side pagination and sorting
         $this->paginate = [
+            'limit' => 25,
+            'order' => ['FinalInvoices.created' => 'DESC'],
             'contain' => ['FreshInvoices' => ['Vessels']],
-            'order' => ['FinalInvoices.created' => 'DESC']
+            // Guard sortable fields
+            'sortableFields' => [
+                'invoice_number',
+                'original_invoice_number',
+                'vessel_name',
+                'bl_number',
+                'landed_quantity',
+                'quantity_variance',
+                'total_value',
+                'status',
+                'created'
+            ],
         ];
-        $finalInvoices = $this->paginate($this->FinalInvoices);
+
+        $query = $this->FinalInvoices->find('all');
+        $finalInvoices = $this->paginate($query);
 
         // KPI metrics for index header
         $all = $this->FinalInvoices->find();
@@ -219,6 +235,10 @@ class FinalInvoicesController extends AppController
         
         $finalInvoice->status = 'pending_treasurer_approval';
         if ($this->FinalInvoices->save($finalInvoice)) {
+            // Notify approvers using settings
+            $accessToken = $this->request->getSession()->read('Auth.AccessToken');
+            $notifier = new \App\Service\ApprovalNotificationService($accessToken);
+            $notifier->notifyFinal((int)$finalInvoice->id, 'pending_approval', ['attachPdf' => true]);
             $this->Flash->success(__('The final invoice has been submitted to the Treasurer for approval.'));
         } else {
             $this->Flash->error(__('Could not submit the final invoice. Please, try again.'));
@@ -248,6 +268,9 @@ class FinalInvoicesController extends AppController
         }
         
         if ($this->FinalInvoices->save($finalInvoice)) {
+            $accessToken = $this->request->getSession()->read('Auth.AccessToken');
+            $notifier = new \App\Service\ApprovalNotificationService($accessToken);
+            $notifier->notifyFinal((int)$finalInvoice->id, 'approved', ['attachPdf' => true]);
             $this->Flash->success(__('The final invoice has been approved.'));
         } else {
             $this->Flash->error(__('Could not approve the final invoice. Please, try again.'));
@@ -274,6 +297,9 @@ class FinalInvoicesController extends AppController
         $finalInvoice->treasurer_comments = $this->request->getData('treasurer_comments');
         
         if ($this->FinalInvoices->save($finalInvoice)) {
+            $accessToken = $this->request->getSession()->read('Auth.AccessToken');
+            $notifier = new \App\Service\ApprovalNotificationService($accessToken);
+            $notifier->notifyFinal((int)$finalInvoice->id, 'rejected', ['attachPdf' => true]);
             $this->Flash->success(__('The final invoice has been rejected.'));
         } else {
             $this->Flash->error(__('Could not reject the final invoice. Please, try again.'));
@@ -346,6 +372,7 @@ class FinalInvoicesController extends AppController
             'sgc_account_id' => $freshInvoice->sgc_account_id,
             'quantity' => $freshInvoice->quantity,
             'bulk_or_bag' => $freshInvoice->bulk_or_bag ?? null,
+            'total_value' => $freshInvoice->total_value ?? 0, // Add total_value for amount_paid suggestion
         ];
 
         return $this->response->withStringBody(json_encode($payload));
@@ -361,6 +388,23 @@ class FinalInvoicesController extends AppController
         if ($this->request->is('post')) {
             $file = $this->request->getData('file');
             
+            // Check if this is a confirmation submit (after preview)
+            if ($this->request->getData('confirm_import')) {
+                $previewData = $this->request->getData('preview_data');
+                if (!empty($previewData)) {
+                    $data = json_decode($previewData, true);
+                    $results = $this->processBulkFinalInvoices($data);
+                    
+                    $this->Flash->success(__('{0} final invoices created successfully. {1} errors.', 
+                        $results['success'], 
+                        $results['errors']
+                    ));
+                    
+                    return $this->redirect(['action' => 'index']);
+                }
+            }
+            
+            // Initial file upload - parse and show preview
             if (!$file || $file->getError() !== UPLOAD_ERR_OK) {
                 $this->Flash->error(__('Please upload a valid CSV file.'));
                 return;
@@ -379,25 +423,98 @@ class FinalInvoicesController extends AppController
             
             // Parse the file
             $data = $this->parseUploadedFile($tmpPath);
-            unlink($tmpPath); // Clean up
+            unlink($tmpPath);
             
             if (empty($data)) {
                 $this->Flash->error(__('No valid data found in the uploaded file.'));
                 return;
             }
             
-            // Process and save final invoices
-            $results = $this->processBulkFinalInvoices($data);
+            // Validate Fresh Invoices exist for each row
+            $validationResults = $this->validateFreshInvoices($data);
             
-            $this->Flash->success(__('{0} final invoices created successfully. {1} errors.', 
-                $results['success'], 
-                $results['errors']
-            ));
-            
-            return $this->redirect(['action' => 'index']);
+            // Show preview page with validation results
+            $this->set('previewData', $data);
+            $this->set('validationResults', $validationResults);
+            $this->set('hasErrors', $validationResults['error_count'] > 0);
+            $this->render('bulk_upload_preview');
+            return;
         }
         
-        $this->set([]);
+        // Load pending Fresh Invoices for the upload form
+        $pendingInvoices = $this->FinalInvoices->FreshInvoices
+            ->find()
+            ->select([
+                'FreshInvoices.id',
+                'FreshInvoices.invoice_number',
+                'FreshInvoices.quantity',
+                'FreshInvoices.bl_number',
+                'Vessels.name',
+                'Vessels.flag_country'
+            ])
+            ->contain(['Vessels'])
+            ->where([
+                'FreshInvoices.id NOT IN' => $this->FinalInvoices
+                    ->find()
+                    ->select(['fresh_invoice_id'])
+                    ->where(['fresh_invoice_id IS NOT' => null])
+            ])
+            ->order(['FreshInvoices.created' => 'DESC'])
+            ->limit(10) // Show first 10 as preview
+            ->all();
+        
+        $this->set('pendingInvoices', $pendingInvoices);
+    }
+    
+    /**
+     * Validate that Fresh Invoices exist for all rows
+     *
+     * @param array $data Parsed CSV data
+     * @return array Validation results with matched invoices and errors
+     */
+    private function validateFreshInvoices(array $data): array
+    {
+        $results = [
+            'matched' => [],
+            'errors' => [],
+            'error_count' => 0,
+            'success_count' => 0
+        ];
+        
+        foreach ($data as $index => $row) {
+            $invoiceNumber = $row['Original Invoice Number'] ?? '';
+            
+            if (empty($invoiceNumber)) {
+                $results['errors'][$index] = 'Missing Original Invoice Number';
+                $results['error_count']++;
+                continue;
+            }
+            
+            // Try to find the Fresh Invoice
+            $freshInvoice = $this->FinalInvoices->FreshInvoices
+                ->find()
+                ->where(['invoice_number' => $invoiceNumber])
+                ->contain(['Clients', 'Products', 'Vessels'])
+                ->first();
+            
+            if ($freshInvoice) {
+                $results['matched'][$index] = [
+                    'invoice' => $freshInvoice,
+                    'client_name' => $freshInvoice->client->name ?? 'N/A',
+                    'product_name' => $freshInvoice->product->name ?? 'N/A',
+                    'original_quantity' => $freshInvoice->quantity,
+                    'landed_quantity' => $row['Landed Quantity'] ?? 0,
+                    'variance' => ($row['Landed Quantity'] ?? 0) - $freshInvoice->quantity,
+                    'unit_price' => $freshInvoice->unit_price
+                ];
+                $results['success_count']++;
+            } else {
+                $results['errors'][$index] = "Fresh Invoice '{$invoiceNumber}' not found in system";
+                $results['error_count']++;
+            }
+        }
+        
+        return $results;
     }
 
     /**
@@ -487,5 +604,86 @@ class FinalInvoicesController extends AppController
         }
         
         return ['success' => $success, 'errors' => $errors];
+    }
+
+    /**
+     * Download CSV template for bulk upload
+     *
+     * @return \Cake\Http\Response
+     */
+    public function downloadTemplate()
+    {
+        $this->autoRender = false;
+        
+        // Find Fresh Invoices that don't have Final Invoices yet
+        $freshInvoicesNeedingFinal = $this->FinalInvoices->FreshInvoices
+            ->find()
+            ->select([
+                'FreshInvoices.id',
+                'FreshInvoices.invoice_number',
+                'FreshInvoices.quantity',
+                'FreshInvoices.bl_number',
+                'Vessels.name',
+                'Vessels.flag_country'
+            ])
+            ->contain(['Vessels'])
+            ->where([
+                'FreshInvoices.id NOT IN' => $this->FinalInvoices
+                    ->find()
+                    ->select(['fresh_invoice_id'])
+                    ->where(['fresh_invoice_id IS NOT' => null])
+            ])
+            ->order(['FreshInvoices.created' => 'DESC'])
+            ->limit(50) // Limit to 50 most recent
+            ->all();
+        
+        // CSV headers
+        $headers = [
+            'Original Invoice Number',
+            'Landed Quantity',
+            'Vessel Name',
+            'BL Number',
+            'Notes'
+        ];
+        
+        // Create CSV content
+        $csv = fopen('php://temp', 'r+');
+        fputcsv($csv, $headers);
+        
+        if ($freshInvoicesNeedingFinal->count() > 0) {
+            // Add real Fresh Invoices as template rows
+            foreach ($freshInvoicesNeedingFinal as $freshInvoice) {
+                $vesselName = 'Vessel: ' . ($freshInvoice->vessel->name ?? 'Unknown');
+                
+                fputcsv($csv, [
+                    $freshInvoice->invoice_number,
+                    $freshInvoice->quantity, // Start with original quantity, user will update
+                    $vesselName,
+                    $freshInvoice->bl_number ?? '',
+                    'Update landed quantity and add notes here'
+                ]);
+            }
+        } else {
+            // Fallback sample data if no Fresh Invoices need Final Invoices
+            $sampleRows = [
+                ['0155', '260.748', 'Vessel: GREAT TEMA - GTT0525', 'LOS37115', 'All Fresh Invoices already have Final Invoices'],
+                ['0156', '259.408', 'Vessel: GREAT TEMA - GTT0525', 'LOS37113', 'These are sample rows only'],
+            ];
+            foreach ($sampleRows as $row) {
+                fputcsv($csv, $row);
+            }
+        }
+        
+        rewind($csv);
+        $output = stream_get_contents($csv);
+        fclose($csv);
+        
+        // Set response
+        $this->response = $this->response
+            ->withType('text/csv')
+            ->withDownload('final_invoices_template.csv')
+            ->withStringBody($output);
+        
+        return $this->response;
     }
 }

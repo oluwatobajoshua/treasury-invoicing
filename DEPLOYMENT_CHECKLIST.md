@@ -45,7 +45,7 @@ Use this checklist to ensure a successful deployment to Azure.
 - [ ] App Service Plan created (B1 Basic or higher)
 - [ ] Web App created (PHP 8.1)
 - [ ] MySQL Flexible Server created
-- [ ] Database created (`travel_requests`)
+- [ ] Database created (`treasury_invoicing`)
 - [ ] Firewall rule added (Allow Azure services)
 
 ### Step 2: Configure Environment Variables
@@ -129,13 +129,13 @@ Use this checklist to ensure a successful deployment to Azure.
 ### Functional Testing
 - [ ] Homepage loads correctly
 - [ ] Microsoft OAuth login works
-- [ ] User can create travel request
-- [ ] Line manager can approve/reject requests
+- [ ] User can create fresh invoice
+- [ ] User can create final invoice
+- [ ] Admin can manage approver settings
 - [ ] Email notifications sent successfully
-- [ ] Teams notifications sent successfully
-- [ ] Allowance calculation accurate
+- [ ] Microsoft Graph user picker works
 - [ ] All CRUD operations work
-- [ ] File uploads work (if applicable)
+- [ ] File uploads work (invoices, attachments)
 
 ### Security Testing
 - [ ] HTTPS enforced (HTTP redirects to HTTPS)

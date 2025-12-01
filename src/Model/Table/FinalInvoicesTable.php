@@ -47,6 +47,7 @@ class FinalInvoicesTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->belongsTo('FreshInvoices', [
             'foreignKey' => 'fresh_invoice_id',
@@ -103,7 +104,14 @@ class FinalInvoicesTable extends Table
         $validator
             ->decimal('unit_price')
             ->requirePresence('unit_price', 'create')
-            ->notEmptyString('unit_price');
+            ->notEmptyString('unit_price')
+            ->greaterThan('unit_price', 0);
+
+        $validator
+            ->decimal('amount_paid')
+            ->requirePresence('amount_paid', 'create')
+            ->notEmptyString('amount_paid')
+            ->greaterThanOrEqual('amount_paid', 0, 'Amount paid must be 0 or greater');
 
         $validator
             ->decimal('payment_percentage')

@@ -5,21 +5,27 @@ namespace App\Controller\Component;
 
 use Cake\Controller\Component;
 use Cake\Controller\ComponentRegistry;
+use App\Security\Rbac;
 
 /**
  * Authorization component for role-based access control
  * 
+ * Integrates with RBAC system for permissions while maintaining
+ * invoice workflow-specific logic.
+ * 
  * Roles:
- * - user: Can create and view own invoices
- * - treasurer: Can approve/reject all invoices
- * - export: Can view fresh invoices sent to Export
- * - sales: Can view final invoices sent to Sales
- * - admin: Full access to everything
+ * - admin: Full access to everything (from RBAC)
+ * - user: Can create and manage invoices (from RBAC)
+ * - auditor: Read-only access + audit logs (from RBAC)
+ * - risk_assessment: Read-only access + limited audit access (from RBAC)
+ * - treasurer: Can approve/reject all invoices (legacy role)
+ * - export: Can view fresh invoices sent to Export (legacy role)
+ * - sales: Can view final invoices sent to Sales (legacy role)
  */
 class AuthorizationComponent extends Component
 {
     /**
-     * Check if user can perform action
+     * Check if user can perform action using RBAC system
      *
      * @param string $action Action name
      * @param string $controller Controller name
@@ -29,130 +35,95 @@ class AuthorizationComponent extends Component
      */
     public function can(string $action, string $controller, array $user, $resource = null): bool
     {
-        $role = $user['role'] ?? 'user';
+        // First check RBAC permissions
+        $rbacAllowed = Rbac::can($user, $controller, $action);
         
-        // Admin has full access
-        if ($role === 'admin') {
+        // If RBAC denies, immediately deny
+        if (!$rbacAllowed) {
+            return false;
+        }
+        
+        // If RBAC allows and no resource-specific check needed, allow
+        if (!$resource) {
             return true;
         }
         
-        // Controller-specific permissions
+        // For invoice controllers, apply additional resource-level checks
         if ($controller === 'FreshInvoices') {
-            return $this->canAccessFreshInvoices($action, $role, $user, $resource);
+            return $this->canAccessFreshInvoiceResource($action, $user, $resource);
         }
         
         if ($controller === 'FinalInvoices') {
-            return $this->canAccessFinalInvoices($action, $role, $user, $resource);
+            return $this->canAccessFinalInvoiceResource($action, $user, $resource);
         }
         
-        // Default deny
-        return false;
+        // Default: RBAC allowed and no additional restrictions
+        return true;
     }
     
     /**
-     * Check Fresh Invoices permissions
+     * Resource-level permission check for Fresh Invoices
+     * (e.g., can only edit draft status)
      *
      * @param string $action Action name
-     * @param string $role User role
      * @param array $user User data
      * @param mixed $resource Fresh invoice entity
      * @return bool
      */
-    protected function canAccessFreshInvoices(string $action, string $role, array $user, $resource = null): bool
+    protected function canAccessFreshInvoiceResource(string $action, array $user, $resource): bool
     {
-        switch ($action) {
-            case 'index':
-            case 'view':
-                // Everyone can view (with filtering applied in controller)
-                return true;
-                
-            case 'add':
-                // Only users and admins can create
-                return in_array($role, ['user', 'admin']);
-                
-            case 'edit':
-                // Can edit if status is draft and user created it
-                if ($resource && isset($resource->status)) {
-                    return $resource->status === 'draft' && in_array($role, ['user', 'admin']);
-                }
-                return in_array($role, ['user', 'admin']);
-                
-            case 'delete':
-                // Can delete if status is draft
-                if ($resource && isset($resource->status)) {
-                    return $resource->status === 'draft' && in_array($role, ['user', 'admin']);
-                }
-                return in_array($role, ['user', 'admin']);
-                
-            case 'submitForApproval':
-                // Users can submit their own drafts
-                return in_array($role, ['user', 'admin']);
-                
-            case 'treasurerApprove':
-            case 'treasurerReject':
-                // Only treasurer can approve/reject
-                return $role === 'treasurer';
-                
-            case 'sendToExport':
-                // Only treasurer or admin can send to export
-                return in_array($role, ['treasurer', 'admin']);
-                
-            default:
-                return false;
+        $role = $user['role'] ?? 'user';
+        
+        // Admin bypasses all resource-level checks
+        if ($role === 'admin') {
+            return true;
         }
+        
+        // Auditor and risk_assessment are read-only (RBAC already checked)
+        if (in_array($role, ['auditor', 'risk_assessment'])) {
+            return in_array($action, ['index', 'view']);
+        }
+        
+        // For edit/delete actions, check if invoice is in draft status
+        if (in_array($action, ['edit', 'delete'])) {
+            if ($resource && isset($resource->status)) {
+                return $resource->status === 'draft';
+            }
+        }
+        
+        return true;
     }
     
     /**
-     * Check Final Invoices permissions
+     * Resource-level permission check for Final Invoices
      *
      * @param string $action Action name
-     * @param string $role User role
      * @param array $user User data
      * @param mixed $resource Final invoice entity
      * @return bool
      */
-    protected function canAccessFinalInvoices(string $action, string $role, array $user, $resource = null): bool
+    protected function canAccessFinalInvoiceResource(string $action, array $user, $resource): bool
     {
-        switch ($action) {
-            case 'index':
-            case 'view':
-                // Everyone can view (with filtering applied in controller)
-                return true;
-                
-            case 'add':
-                // Only users and admins can create
-                return in_array($role, ['user', 'admin']);
-                
-            case 'edit':
-                // Can edit if status is draft
-                if ($resource && isset($resource->status)) {
-                    return $resource->status === 'draft' && in_array($role, ['user', 'admin']);
-                }
-                return in_array($role, ['user', 'admin']);
-                
-            case 'delete':
-                // Can delete if status is draft
-                if ($resource && isset($resource->status)) {
-                    return $resource->status === 'draft' && in_array($role, ['user', 'admin']);
-                }
-                return in_array($role, ['user', 'admin']);
-                
-            case 'submitForApproval':
-                // Users can submit their own drafts
-                return in_array($role, ['user', 'admin']);
-                
-            case 'treasurerApprove':
-            case 'treasurerReject':
-                // Only treasurer can approve/reject
-                return $role === 'treasurer';
-                
-            case 'sendToSales':
-                // Only treasurer or admin can send to sales
-                return in_array($role, ['treasurer', 'admin']);
-                
-            default:
-                return false;
+        $role = $user['role'] ?? 'user';
+        
+        // Admin bypasses all resource-level checks
+        if ($role === 'admin') {
+            return true;
         }
+        
+        // Auditor and risk_assessment are read-only
+        if (in_array($role, ['auditor', 'risk_assessment'])) {
+            return in_array($action, ['index', 'view']);
+        }
+        
+        // For edit/delete actions, check if invoice is in draft status
+        if (in_array($action, ['edit', 'delete'])) {
+            if ($resource && isset($resource->status)) {
+                return $resource->status === 'draft';
+            }
+        }
+        
+        return true;
     }
     
     /**
@@ -166,14 +137,13 @@ class AuthorizationComponent extends Component
     {
         $role = $user['role'] ?? 'user';
         
-        // Admin and treasurer see everything
-        if (in_array($role, ['admin', 'treasurer'])) {
+        // Admin, auditor, and risk_assessment see everything
+        if (in_array($role, ['admin', 'auditor', 'risk_assessment', 'treasurer'])) {
             return null; // null means all statuses
         }
         
         if ($controller === 'FreshInvoices') {
             if ($role === 'export') {
-                // Export can only see invoices sent to them
                 return ['sent_to_export'];
             }
             // Regular users see their own invoices (filtered by user_id in controller)
@@ -182,7 +152,6 @@ class AuthorizationComponent extends Component
         
         if ($controller === 'FinalInvoices') {
             if ($role === 'sales') {
-                // Sales can only see invoices sent to them
                 return ['sent_to_sales'];
             }
             // Regular users see their own invoices (filtered by user_id in controller)

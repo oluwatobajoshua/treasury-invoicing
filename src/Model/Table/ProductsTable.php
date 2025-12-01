@@ -45,6 +45,7 @@ class ProductsTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+        $this->addBehavior('AuditLog');
 
         $this->hasMany('Contracts', [
             'foreignKey' => 'product_id',

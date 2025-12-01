@@ -87,11 +87,15 @@ $this->assign('title', 'Login');
 </style>
 
 <div class="login-container fade-in">
-    <div class="login-logo">✈️</div>
-    <h1 class="login-title">Travel Request System</h1>
+    <div class="login-logo">💰</div>
+    <h1 class="login-title">Treasury Invoicing System</h1>
     <p class="login-subtitle">Sign in with your Microsoft account to continue</p>
     
     <?= $this->Flash->render() ?>
+    
+    <div id="connectivity-status" style="display:none;margin-bottom:1rem;padding:0.75rem;border-radius:8px;font-size:0.9rem;">
+        <i class="fas fa-wifi"></i> <span id="connectivity-message"></span>
+    </div>
     
     <?= $this->Html->link(
         '<div class="microsoft-icon">
@@ -106,7 +110,8 @@ $this->assign('title', 'Login');
         ['action' => 'login'],
         [
             'class' => 'microsoft-login-btn',
-            'escape' => false
+            'escape' => false,
+            'id' => 'login-btn'
         ]
     ) ?>
     
@@ -125,3 +130,77 @@ $this->assign('title', 'Login');
         </div>
     </div>
 </div>
+
+<script>
+// Check internet connectivity before allowing login
+let isOnline = navigator.onLine;
+
+function updateConnectivityStatus(online) {
+    const statusDiv = document.getElementById('connectivity-status');
+    const messageSpan = document.getElementById('connectivity-message');
+    const loginBtn = document.getElementById('login-btn');
+    
+    if (!online) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#FEE2E2';
+        statusDiv.style.color = '#991B1B';
+        statusDiv.style.border = '2px solid #FCA5A5';
+        messageSpan.innerHTML = '<strong>No Internet Connection</strong><br>You are not connected to the internet. Please check your network connection.';
+        
+        // Disable login button
+        loginBtn.style.opacity = '0.5';
+        loginBtn.style.cursor = 'not-allowed';
+        loginBtn.style.pointerEvents = 'none';
+    } else {
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#D1FAE5';
+        statusDiv.style.color = '#065F46';
+        statusDiv.style.border = '2px solid #6EE7B7';
+        messageSpan.innerHTML = '<strong>Connected</strong> - Ready to sign in';
+        
+        // Enable login button
+        loginBtn.style.opacity = '1';
+        loginBtn.style.cursor = 'pointer';
+        loginBtn.style.pointerEvents = 'auto';
+        
+        // Hide status after 3 seconds if online
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// Check connectivity on page load
+updateConnectivityStatus(isOnline);
+
+// Listen for connectivity changes
+window.addEventListener('online', function() {
+    isOnline = true;
+    updateConnectivityStatus(true);
+    console.log('[Connectivity] Internet connection restored');
+});
+
+window.addEventListener('offline', function() {
+    isOnline = false;
+    updateConnectivityStatus(false);
+    console.log('[Connectivity] Internet connection lost');
+});
+
+// Additional check before login click
+document.getElementById('login-btn').addEventListener('click', function(e) {
+    if (!navigator.onLine) {
+        e.preventDefault();
+        alert('⚠️ No Internet Connection\n\nYou are not connected to the internet.\n\nPlease check your network connection and try again.');
+        return false;
+    }
+});
+
+// Periodic connectivity check (every 5 seconds)
+setInterval(function() {
+    const currentStatus = navigator.onLine;
+    if (currentStatus !== isOnline) {
+        isOnline = currentStatus;
+        updateConnectivityStatus(isOnline);
+    }
+}, 5000);
+</script>

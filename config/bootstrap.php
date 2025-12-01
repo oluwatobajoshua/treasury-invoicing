@@ -106,6 +106,22 @@ if (file_exists(CONFIG . 'admin.php')) {
 }
 
 /*
+ * Load Application Settings (app name, company info, etc.)
+ */
+if (file_exists(CONFIG . 'app_settings.php')) {
+    $appSettings = include CONFIG . 'app_settings.php';
+    Configure::write('AppSettings', $appSettings);
+    
+    // Override App config with user-defined settings
+    if (isset($appSettings['app_name'])) {
+        Configure::write('App.name', $appSettings['app_name']);
+    }
+    if (isset($appSettings['timezone'])) {
+        Configure::write('App.defaultTimezone', $appSettings['timezone']);
+    }
+}
+
+/*
  * When debug = true the metadata cache should only last
  * for a short time.
  */
