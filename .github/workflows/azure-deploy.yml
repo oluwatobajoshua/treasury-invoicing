@@ -53,7 +53,7 @@ jobs:
         rm -rf deployment
 
     - name: Upload artifact for deployment
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6
       with:
         name: php-app
         path: app.tar.gz
