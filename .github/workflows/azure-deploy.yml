@@ -59,7 +59,7 @@ jobs:
         path: app.tar.gz
 
     - name: Download artifact from build job
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v7
       with:
         name: php-app
 
